@@ -2,7 +2,7 @@ from flask import Blueprint, request, jsonify
 from flask_jwt_extended import create_access_token
 
 from app.extensions import db
-from app.models import User
+from app.models import User, UserRole, Role, RolePermission, Permission
 from app.utils.auth import check_password, hash_password
 
 from flask_jwt_extended import (
@@ -101,6 +101,7 @@ def change_password():
     }), 200
 
 
+
 @auth_bp.route("/me", methods=["GET"])
 @jwt_required()
 def get_current_user():
@@ -113,11 +114,57 @@ def get_current_user():
             "error": "User not found"
         }), 404
 
+    if user.status != "ACTIVE":
+        return jsonify({
+            "error": "Account is disabled"
+        }), 403
+
+    roles = []
+    permissions = set()
+
+    user_roles = UserRole.query.filter_by(
+        user_id=user.id
+    ).all()
+
+    for user_role in user_roles:
+
+        role = Role.query.get(user_role.role_id)
+
+        if not role:
+            continue
+
+        roles.append(role.name)
+
+        role_permissions = RolePermission.query.filter_by(
+            role_id=role.id
+        ).all()
+
+        for role_permission in role_permissions:
+
+            permission = Permission.query.get(
+                role_permission.permission_id
+            )
+
+            if permission:
+                permissions.add(permission.name)
+
+    if user.account_type in ["SHEPHERD", "ASSISTANT"]:
+
+        all_permissions = Permission.query.all()
+
+        permissions = {
+            permission.name
+            for permission in all_permissions
+        }
+
     return jsonify({
         "id": user.id,
         "username": user.username,
         "account_type": user.account_type,
         "profile_picture": user.profile_picture,
         "must_change_password": user.must_change_password,
-        "status": user.status
+        "status": user.status,
+        "roles": roles,
+        "permissions": sorted(permissions)
     }), 200
+
