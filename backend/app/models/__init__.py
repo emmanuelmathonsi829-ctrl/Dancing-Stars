@@ -11,11 +11,30 @@ class User(db.Model):
 
     password_hash = db.Column(db.String(255), nullable=False)
 
-    account_type = db.Column(db.String(20), nullable=False, default="DANCER")
+    account_type = db.Column(
+        db.String(20),
+        nullable=False,
+        default="DANCER"
+    )
 
     profile_picture = db.Column(
-    db.String(500),
-    nullable=True
+        db.LargeBinary,
+        nullable=True
+    )
+
+    profile_picture_original = db.Column(
+        db.LargeBinary,
+        nullable=True
+    )
+
+    birthday_day = db.Column(
+        db.Integer,
+        nullable=True
+    )
+
+    birthday_month = db.Column(
+        db.Integer,
+        nullable=True
     )
 
     must_change_password = db.Column(

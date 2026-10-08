@@ -147,9 +147,9 @@ def get_overview():
             } if next_rehearsal else None
         }), 200
 
-    active_dancers = User.query.filter_by(
-        account_type="DANCER",
-        status="ACTIVE"
+    active_dancers = User.query.filter(
+        User.account_type.in_(["DANCER", "SHEPHERD"]),
+        User.status == "ACTIVE"
     ).count()
 
     upcoming_rehearsals = Rehearsal.query.filter(

@@ -18,8 +18,9 @@ dancers_bp = Blueprint(
 @permission_required("dancers.view")
 def get_dancers():
 
-    dancers = User.query.filter_by(
-        account_type="DANCER"
+    dancers = User.query.filter(
+        User.account_type.in_(["DANCER", "SHEPHERD"]),
+        User.status == "ACTIVE"
     ).order_by(
         User.username.asc()
     ).all()
@@ -30,7 +31,7 @@ def get_dancers():
         result.append({
             "id": dancer.id,
             "username": dancer.username,
-            "profile_picture": dancer.profile_picture,
+            "profile_picture": bool(dancer.profile_picture),
             "status": dancer.status,
             "must_change_password": dancer.must_change_password,
             "created_at": dancer.created_at.isoformat()

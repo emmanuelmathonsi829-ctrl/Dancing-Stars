@@ -1,3 +1,4 @@
+
 * {
     margin: 0;
     padding: 0;
@@ -178,6 +179,8 @@ body {
     width: 42px;
     height: 42px;
     flex-shrink: 0;
+    padding: 0;
+    border: none;
     border-radius: 50%;
     background: #ffffff;
     color: #0b0b0f;
@@ -185,6 +188,20 @@ body {
     align-items: center;
     justify-content: center;
     font-weight: 800;
+    cursor: pointer;
+    overflow: hidden;
+}
+
+.user-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
+    display: block;
+}
+
+.user-avatar:hover {
+    opacity: 0.9;
 }
 
 .page-content {
@@ -371,6 +388,15 @@ body {
     justify-content: center;
     font-size: 16px;
     font-weight: 800;
+    overflow: hidden;
+}
+
+.dancer-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
+    display: block;
 }
 
 .dancer-info {
@@ -439,6 +465,15 @@ body {
     justify-content: center;
     font-size: 30px;
     font-weight: 800;
+    overflow: hidden;
+}
+
+.dancer-profile-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
+    display: block;
 }
 
 .dancer-profile h3 {
@@ -605,8 +640,6 @@ body {
     flex-wrap: wrap;
     justify-content: flex-end;
 }
-
-/* Roles */
 
 .roles-list {
     display: grid;
@@ -850,6 +883,151 @@ body {
     opacity: 0.6;
     cursor: not-allowed;
     transform: none;
+}
+
+.profile-picture-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    background: rgba(0, 0, 0, 0.78);
+    backdrop-filter: blur(8px);
+}
+
+.profile-picture-modal.open {
+    display: flex;
+}
+
+.profile-picture-box {
+    position: relative;
+    width: min(460px, 100%);
+    padding: 30px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 18px;
+    background: #111116;
+    box-shadow: 0 20px 70px rgba(0, 0, 0, 0.45);
+    text-align: center;
+}
+
+.profile-picture-box h2 {
+    font-size: 22px;
+    margin-bottom: 8px;
+}
+
+.profile-picture-box > p {
+    margin-bottom: 22px;
+    color: rgba(255, 255, 255, 0.45);
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+.profile-picture-close {
+    position: absolute;
+    top: 13px;
+    right: 13px;
+    width: 36px;
+    height: 36px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 50%;
+    background: transparent;
+    color: #ffffff;
+    font-size: 24px;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.profile-picture-close:hover {
+    background: rgba(255, 255, 255, 0.07);
+}
+
+#profilePictureInput {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.035);
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 13px;
+}
+
+#profilePictureInput::file-selector-button {
+    margin-right: 10px;
+    padding: 8px 12px;
+    border: none;
+    border-radius: 7px;
+    background: #ffffff;
+    color: #0b0b0f;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.profile-picture-preview {
+    width: 300px;
+    height: 300px;
+    max-width: 100%;
+    margin: 24px auto;
+    border-radius: 50%;
+    overflow: hidden;
+    background: #08080b;
+    border: 2px solid rgba(255, 255, 255, 0.14);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.03);
+}
+
+#profilePictureCanvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+    cursor: grab;
+}
+
+#profilePictureCanvas:active {
+    cursor: grabbing;
+}
+
+.profile-picture-controls {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 18px;
+}
+
+.profile-picture-controls button {
+    width: 44px;
+    height: 40px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 9px;
+    background: rgba(255, 255, 255, 0.04);
+    color: #ffffff;
+    font-size: 22px;
+    cursor: pointer;
+}
+
+.profile-picture-controls button:hover {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+#saveProfilePictureButton {
+    width: 100%;
+    min-height: 44px;
+    border: none;
+    border-radius: 9px;
+    background: #ffffff;
+    color: #0b0b0f;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+#saveProfilePictureButton:hover {
+    opacity: 0.9;
+}
+
+#saveProfilePictureButton:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
 }
 
 @media (max-width: 1000px) {
@@ -1127,6 +1305,15 @@ body {
     .attendance-button {
         flex: 1;
     }
+
+    .profile-picture-box {
+        padding: 25px 18px;
+    }
+
+    .profile-picture-preview {
+        width: min(280px, 80vw);
+        height: min(280px, 80vw);
+    }
 }
 
 @media (max-width: 400px) {
@@ -1176,6 +1363,15 @@ body {
     .role-actions {
         grid-template-columns: 1fr;
     }
+
+    .profile-picture-box {
+        padding: 22px 14px;
+    }
+
+    .profile-picture-preview {
+        width: 240px;
+        height: 240px;
+    }
 }
 
 @media (max-width: 750px) {
@@ -1214,3 +1410,4 @@ body {
         width: 100%;
     }
 }
+

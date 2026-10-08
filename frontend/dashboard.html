@@ -93,7 +93,6 @@
 
         </aside>
 
-
         <main class="main-content">
 
             <header class="topbar">
@@ -120,14 +119,18 @@
                         </span>
                     </div>
 
-                    <div class="user-avatar" id="userAvatar">
+                    <button
+                        type="button"
+                        class="user-avatar"
+                        id="userAvatar"
+                        aria-label="Change profile picture"
+                    >
                         ?
-                    </div>
+                    </button>
 
                 </div>
 
             </header>
-
 
             <section id="pageContent" class="page-content">
 
@@ -147,7 +150,6 @@
 
                 </div>
 
-
                 <div class="stats-grid">
 
                     <div class="stat-card">
@@ -166,7 +168,6 @@
 
                     </div>
 
-
                     <div class="stat-card">
 
                         <span class="stat-label">
@@ -183,7 +184,6 @@
 
                     </div>
 
-
                     <div class="stat-card">
 
                         <span class="stat-label">
@@ -199,7 +199,6 @@
                         </span>
 
                     </div>
-
 
                     <div class="stat-card">
 
@@ -218,7 +217,6 @@
                     </div>
 
                 </div>
-
 
                 <div class="dashboard-grid">
 
@@ -243,7 +241,6 @@
                         </div>
 
                     </div>
-
 
                     <div class="dashboard-card">
 
@@ -272,6 +269,81 @@
             </section>
 
         </main>
+
+    </div>
+
+    <div
+        id="profilePictureModal"
+        class="profile-picture-modal"
+        aria-hidden="true"
+    >
+
+        <div
+            class="profile-picture-box"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="profilePictureTitle"
+        >
+
+            <button
+                type="button"
+                id="closeProfilePictureModal"
+                class="profile-picture-close"
+                aria-label="Close profile picture editor"
+            >
+                ×
+            </button>
+
+            <h2 id="profilePictureTitle">
+                Profile Picture
+            </h2>
+
+            <p>
+                Choose a picture and adjust how it appears.
+            </p>
+
+            <input
+                type="file"
+                id="profilePictureInput"
+                accept="image/jpeg,image/png,image/webp"
+            >
+
+            <div class="profile-picture-preview">
+
+                <canvas
+                    id="profilePictureCanvas"
+                    width="300"
+                    height="300"
+                ></canvas>
+
+            </div>
+
+            <div class="profile-picture-controls">
+
+                <button
+                    type="button"
+                    id="zoomOutButton"
+                >
+                    −
+                </button>
+
+                <button
+                    type="button"
+                    id="zoomInButton"
+                >
+                    +
+                </button>
+
+            </div>
+
+            <button
+                type="button"
+                id="saveProfilePictureButton"
+            >
+                Save Profile Picture
+            </button>
+
+        </div>
 
     </div>
 
