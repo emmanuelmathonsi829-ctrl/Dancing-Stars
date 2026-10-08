@@ -1,282 +1,761 @@
 
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
 
-    <title>Dashboard | Fresh Fire Dancing Stars</title>
+html,
+body {
+    width: 100%;
+    min-height: 100%;
+}
 
-    <link rel="stylesheet" href="css/dashboard.css">
-</head>
+body {
+    font-family: Arial, Helvetica, sans-serif;
+    background: #0b0b0f;
+    color: #ffffff;
+}
 
-<body>
+/* =========================
+   DASHBOARD
+========================= */
 
-    <div class="dashboard">
+.dashboard {
+    min-height: 100vh;
+    display: flex;
+}
 
-        <aside class="sidebar">
+/* =========================
+   SIDEBAR
+========================= */
 
-            <div class="sidebar-header">
-                <a href="index.html" class="logo">
-                    <span>Fresh Fire</span>
-                    <small>Dancing Stars</small>
-                </a>
-            </div>
+.sidebar {
+    width: 250px;
+    min-height: 100vh;
+    background: #111116;
+    border-right: 1px solid rgba(255, 255, 255, 0.08);
 
-            <nav class="sidebar-nav">
+    display: flex;
+    flex-direction: column;
 
-                <a href="#" class="nav-item active" data-page="overview">
-                    <span>⌂</span>
-                    <span>Overview</span>
-                </a>
+    position: fixed;
+    left: 0;
+    top: 0;
+    bottom: 0;
 
-                <a href="#" class="nav-item" data-page="dancers">
-                    <span>♟</span>
-                    <span>Dancers</span>
-                </a>
+    z-index: 100;
+}
 
-                <a href="#" class="nav-item" data-page="roles">
-                    <span>◆</span>
-                    <span>Roles</span>
-                </a>
+.sidebar-header {
+    padding: 30px 25px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+}
 
-                <a href="#" class="nav-item" data-page="attendance">
-                    <span>✓</span>
-                    <span>Attendance</span>
-                </a>
+.logo {
+    display: flex;
+    flex-direction: column;
 
-                <a href="#" class="nav-item" data-page="rehearsals">
-                    <span>◷</span>
-                    <span>Rehearsals</span>
-                </a>
+    text-decoration: none;
+    color: #ffffff;
 
-                <a href="#" class="nav-item" data-page="uniform">
-                    <span>◇</span>
-                    <span>Uniform</span>
-                </a>
+    line-height: 1.1;
+}
 
-                <a href="#" class="nav-item" data-page="dance">
-                    <span>★</span>
-                    <span>Dance Knowledge</span>
-                </a>
+.logo span {
+    font-size: 22px;
+    font-weight: 800;
+    letter-spacing: 1px;
+}
 
-                <a href="#" class="nav-item" data-page="music">
-                    <span>♫</span>
-                    <span>Music</span>
-                </a>
+.logo small {
+    margin-top: 6px;
+    font-size: 10px;
+    letter-spacing: 3px;
+    opacity: 0.45;
+}
 
-                <a href="#" class="nav-item" data-page="reports">
-                    <span>▣</span>
-                    <span>Reports</span>
-                </a>
+.sidebar-nav {
+    flex: 1;
 
-                <a href="#" class="nav-item" data-page="activity">
-                    <span>◉</span>
-                    <span>Activity Log</span>
-                </a>
+    padding: 20px 14px;
 
-                <a href="#" class="nav-item" data-page="settings">
-                    <span>⚙</span>
-                    <span>Settings</span>
-                </a>
+    overflow-y: auto;
+}
 
-            </nav>
+.nav-item {
+    display: flex;
+    align-items: center;
 
-            <div class="sidebar-footer">
+    gap: 14px;
 
-                <button id="logoutButton" class="logout-button">
-                    <span>↪</span>
-                    <span>Logout</span>
-                </button>
+    padding: 13px 14px;
 
-            </div>
+    margin-bottom: 5px;
 
-        </aside>
+    border-radius: 9px;
 
+    color: rgba(255, 255, 255, 0.55);
 
-        <main class="main-content">
+    text-decoration: none;
 
-            <header class="topbar">
+    font-size: 14px;
 
-                <div>
-                    <p class="topbar-label">
-                        FRESH FIRE
-                    </p>
+    transition: 0.2s ease;
+}
 
-                    <h1 id="pageTitle">
-                        Dashboard
-                    </h1>
-                </div>
+.nav-item span:first-child {
+    width: 20px;
 
-                <div class="user-area">
+    text-align: center;
 
-                    <div class="user-info">
-                        <strong id="username">
-                            Loading...
-                        </strong>
+    font-size: 16px;
+}
 
-                        <span id="accountType">
-                            Loading...
-                        </span>
-                    </div>
+.nav-item:hover {
+    color: #ffffff;
 
-                    <div class="user-avatar" id="userAvatar">
-                        ?
-                    </div>
+    background: rgba(255, 255, 255, 0.05);
+}
 
-                </div>
+.nav-item.active {
+    color: #ffffff;
 
-            </header>
+    background: rgba(255, 255, 255, 0.09);
+}
 
+/* =========================
+   LOGOUT
+========================= */
 
-            <section id="pageContent" class="page-content">
+.sidebar-footer {
+    padding: 18px 14px;
 
-                <div class="welcome-section">
+    border-top: 1px solid rgba(255, 255, 255, 0.07);
+}
 
-                    <p class="section-label">
-                        OVERVIEW
-                    </p>
+.logout-button {
+    width: 100%;
 
-                    <h2>
-                        Welcome back, <span id="welcomeUsername">...</span>
-                    </h2>
+    padding: 12px 14px;
 
-                    <p>
-                        Manage Dancing Stars from one place.
-                    </p>
+    border: 1px solid rgba(255, 255, 255, 0.08);
 
-                </div>
+    border-radius: 9px;
 
+    background: transparent;
 
-                <div class="stats-grid">
+    color: rgba(255, 255, 255, 0.55);
 
-                    <div class="stat-card">
+    display: flex;
+    align-items: center;
 
-                        <span class="stat-label">
-                            DANCERS
-                        </span>
+    gap: 14px;
 
-                        <strong class="stat-value" id="dancerCount">
-                            —
-                        </strong>
+    cursor: pointer;
 
-                        <span class="stat-description">
-                            Active members
-                        </span>
+    font-size: 14px;
 
-                    </div>
+    transition: 0.2s ease;
+}
 
+.logout-button:hover {
+    color: #ffffff;
 
-                    <div class="stat-card">
+    background: rgba(255, 255, 255, 0.05);
+}
 
-                        <span class="stat-label">
-                            REHEARSALS
-                        </span>
+/* =========================
+   MAIN CONTENT
+========================= */
 
-                        <strong class="stat-value" id="rehearsalCount">
-                            —
-                        </strong>
+.main-content {
+    margin-left: 250px;
 
-                        <span class="stat-description">
-                            Upcoming rehearsals
-                        </span>
+    width: calc(100% - 250px);
 
-                    </div>
+    min-height: 100vh;
+}
 
+/* =========================
+   TOP BAR
+========================= */
 
-                    <div class="stat-card">
+.topbar {
+    min-height: 90px;
 
-                        <span class="stat-label">
-                            ATTENDANCE
-                        </span>
+    padding: 20px 40px;
 
-                        <strong class="stat-value" id="attendanceRate">
-                            —
-                        </strong>
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
 
-                        <span class="stat-description">
-                            Recent attendance
-                        </span>
+    border-bottom: 1px solid rgba(255, 255, 255, 0.07);
 
-                    </div>
+    background: rgba(11, 11, 15, 0.95);
+}
 
+.topbar-label,
+.section-label {
+    font-size: 10px;
 
-                    <div class="stat-card">
+    letter-spacing: 3px;
 
-                        <span class="stat-label">
-                            DANCES
-                        </span>
+    font-weight: 700;
 
-                        <strong class="stat-value" id="danceCount">
-                            —
-                        </strong>
+    opacity: 0.4;
+}
 
-                        <span class="stat-description">
-                            In the library
-                        </span>
+.topbar h1 {
+    margin-top: 5px;
 
-                    </div>
+    font-size: 25px;
+}
 
-                </div>
+.user-area {
+    display: flex;
+    align-items: center;
 
+    gap: 13px;
+}
 
-                <div class="dashboard-grid">
+.user-info {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
 
-                    <div class="dashboard-card">
+    gap: 4px;
+}
 
-                        <div class="card-header">
+.user-info strong {
+    font-size: 14px;
+}
 
-                            <div>
-                                <p class="section-label">
-                                    NEXT
-                                </p>
+.user-info span {
+    font-size: 11px;
 
-                                <h3>
-                                    Upcoming Rehearsal
-                                </h3>
-                            </div>
+    opacity: 0.4;
 
-                        </div>
+    text-transform: uppercase;
 
-                        <div id="nextRehearsal" class="empty-state">
-                            No upcoming rehearsal.
-                        </div>
+    letter-spacing: 1px;
+}
 
-                    </div>
+.user-avatar {
+    width: 42px;
+    height: 42px;
 
+    flex-shrink: 0;
 
-                    <div class="dashboard-card">
+    border-radius: 50%;
 
-                        <div class="card-header">
+    background: #ffffff;
 
-                            <div>
-                                <p class="section-label">
-                                    RECENT
-                                </p>
+    color: #0b0b0f;
 
-                                <h3>
-                                    Recent Activity
-                                </h3>
-                            </div>
+    display: flex;
+    align-items: center;
+    justify-content: center;
 
-                        </div>
+    font-weight: 800;
+}
 
-                        <div id="recentActivity" class="empty-state">
-                            No recent activity.
-                        </div>
+/* =========================
+   PAGE
+========================= */
 
-                    </div>
+.page-content {
+    padding: 45px 40px;
 
-                </div>
+    max-width: 1400px;
+}
 
-            </section>
+.welcome-section {
+    margin-bottom: 35px;
+}
 
-        </main>
+.welcome-section h2 {
+    margin-top: 8px;
 
-    </div>
+    font-size: 30px;
+}
 
-    <script src="js/dashboard.js"></script>
+.welcome-section h2 span {
+    opacity: 0.55;
+}
 
-</body>
-</html>
+.welcome-section > p:last-child {
+    margin-top: 10px;
+
+    font-size: 14px;
+
+    opacity: 0.45;
+}
+
+/* =========================
+   STATISTICS
+========================= */
+
+.stats-grid {
+    display: grid;
+
+    grid-template-columns: repeat(4, 1fr);
+
+    gap: 16px;
+
+    margin-bottom: 25px;
+}
+
+.stat-card {
+    padding: 25px;
+
+    background: rgba(255, 255, 255, 0.035);
+
+    border: 1px solid rgba(255, 255, 255, 0.08);
+
+    border-radius: 13px;
+
+    transition: 0.2s ease;
+}
+
+.stat-card:hover {
+    background: rgba(255, 255, 255, 0.055);
+
+    transform: translateY(-2px);
+}
+
+.stat-label {
+    display: block;
+
+    font-size: 10px;
+
+    letter-spacing: 2px;
+
+    opacity: 0.4;
+}
+
+.stat-value {
+    display: block;
+
+    margin-top: 15px;
+
+    font-size: 30px;
+}
+
+.stat-description {
+    display: block;
+
+    margin-top: 7px;
+
+    font-size: 12px;
+
+    opacity: 0.35;
+}
+
+/* =========================
+   DASHBOARD CARDS
+========================= */
+
+.dashboard-grid {
+    display: grid;
+
+    grid-template-columns: 1fr 1fr;
+
+    gap: 20px;
+}
+
+.dashboard-card {
+    min-height: 240px;
+
+    padding: 25px;
+
+    background: rgba(255, 255, 255, 0.035);
+
+    border: 1px solid rgba(255, 255, 255, 0.08);
+
+    border-radius: 13px;
+}
+
+.card-header {
+    padding-bottom: 18px;
+
+    border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.card-header h3 {
+    margin-top: 7px;
+
+    font-size: 17px;
+}
+
+.empty-state {
+    min-height: 150px;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    text-align: center;
+
+    font-size: 13px;
+
+    opacity: 0.35;
+}
+
+/* =========================
+   TABLET
+========================= */
+
+@media (max-width: 1000px) {
+
+    .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .dashboard-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* =========================
+   MOBILE
+========================= */
+
+@media (max-width: 750px) {
+
+    body {
+        padding-bottom: 75px;
+    }
+
+    /* Hide desktop sidebar */
+
+    .sidebar {
+        width: 100%;
+
+        height: 68px;
+        min-height: 68px;
+
+        left: 0;
+        right: 0;
+        top: auto;
+        bottom: 0;
+
+        border-right: none;
+
+        border-top: 1px solid rgba(255, 255, 255, 0.08);
+
+        background: rgba(17, 17, 22, 0.97);
+
+        backdrop-filter: blur(20px);
+
+        display: block;
+    }
+
+    /* Hide logo */
+
+    .sidebar-header {
+        display: none;
+    }
+
+    /* Mobile navigation */
+
+    .sidebar-nav {
+
+        height: 100%;
+
+        padding: 7px 5px;
+
+        display: flex;
+
+        align-items: stretch;
+
+        justify-content: space-around;
+
+        overflow-x: auto;
+        overflow-y: hidden;
+
+        gap: 3px;
+    }
+
+    .nav-item {
+
+        flex: 0 0 62px;
+
+        min-width: 62px;
+
+        height: 54px;
+
+        margin: 0;
+
+        padding: 5px 2px;
+
+        border-radius: 9px;
+
+        display: flex;
+
+        flex-direction: column;
+
+        justify-content: center;
+
+        align-items: center;
+
+        gap: 3px;
+
+        font-size: 9px;
+
+        white-space: nowrap;
+    }
+
+    .nav-item span:first-child {
+
+        width: auto;
+
+        font-size: 17px;
+    }
+
+    .nav-item span:last-child {
+
+        display: block;
+
+        font-size: 9px;
+
+        opacity: 0.8;
+    }
+
+    /* Logout */
+
+    .sidebar-footer {
+
+        display: none;
+    }
+
+    /* Main */
+
+    .main-content {
+
+        margin-left: 0;
+
+        width: 100%;
+
+        min-height: 100vh;
+    }
+
+    /* Top bar */
+
+    .topbar {
+
+        min-height: 72px;
+
+        padding: 15px 17px;
+
+        position: sticky;
+
+        top: 0;
+
+        z-index: 50;
+    }
+
+    .topbar-label {
+
+        font-size: 8px;
+
+        letter-spacing: 2px;
+    }
+
+    .topbar h1 {
+
+        margin-top: 3px;
+
+        font-size: 20px;
+    }
+
+    .user-area {
+
+        gap: 8px;
+    }
+
+    .user-info {
+
+        display: none;
+    }
+
+    .user-avatar {
+
+        width: 38px;
+        height: 38px;
+
+        font-size: 13px;
+    }
+
+    /* Page */
+
+    .page-content {
+
+        width: 100%;
+
+        padding: 25px 15px 30px;
+    }
+
+    /* Welcome */
+
+    .welcome-section {
+
+        margin-bottom: 25px;
+    }
+
+    .welcome-section h2 {
+
+        font-size: 24px;
+
+        line-height: 1.2;
+    }
+
+    .welcome-section > p:last-child {
+
+        font-size: 13px;
+
+        line-height: 1.5;
+    }
+
+    /* Stats */
+
+    .stats-grid {
+
+        grid-template-columns: repeat(2, 1fr);
+
+        gap: 10px;
+
+        margin-bottom: 15px;
+    }
+
+    .stat-card {
+
+        padding: 17px;
+
+        border-radius: 11px;
+    }
+
+    .stat-label {
+
+        font-size: 8px;
+
+        letter-spacing: 1.5px;
+    }
+
+    .stat-value {
+
+        margin-top: 10px;
+
+        font-size: 25px;
+    }
+
+    .stat-description {
+
+        margin-top: 5px;
+
+        font-size: 10px;
+    }
+
+    /* Cards */
+
+    .dashboard-grid {
+
+        display: flex;
+
+        flex-direction: column;
+
+        gap: 12px;
+    }
+
+    .dashboard-card {
+
+        min-height: 190px;
+
+        padding: 18px;
+
+        border-radius: 11px;
+    }
+
+    .card-header {
+
+        padding-bottom: 14px;
+    }
+
+    .card-header h3 {
+
+        font-size: 15px;
+    }
+
+    .empty-state {
+
+        min-height: 110px;
+
+        font-size: 12px;
+    }
+}
+
+/* =========================
+   SMALL PHONES
+========================= */
+
+@media (max-width: 400px) {
+
+    .sidebar {
+
+        height: 64px;
+
+        min-height: 64px;
+    }
+
+    body {
+
+        padding-bottom: 70px;
+    }
+
+    .nav-item {
+
+        flex-basis: 58px;
+
+        min-width: 58px;
+
+        height: 50px;
+    }
+
+    .nav-item span:first-child {
+
+        font-size: 15px;
+    }
+
+    .nav-item span:last-child {
+
+        font-size: 8px;
+    }
+
+    .topbar {
+
+        padding: 14px;
+    }
+
+    .page-content {
+
+        padding: 22px 12px 25px;
+    }
+
+    .welcome-section h2 {
+
+        font-size: 22px;
+    }
+
+    .stat-card {
+
+        padding: 14px;
+    }
+
+    .stat-value {
+
+        font-size: 23px;
+    }
+}
 
