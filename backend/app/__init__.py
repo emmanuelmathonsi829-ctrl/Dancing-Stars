@@ -22,6 +22,9 @@ from .models import (
 from .routes.auth import auth_bp
 from .routes.dance import dance_bp
 from .routes.dancers import dancers_bp
+from .routes.attendance import attendance_bp
+from .routes.dashboard import dashboard_bp
+from .routes.rehearsals import rehearsals_bp
 
 
 
@@ -47,6 +50,9 @@ def create_app():
     app.register_blueprint(dance_bp)
     app.register_blueprint(auth_bp)
     app.register_blueprint(dancers_bp)
+    app.register_blueprint(attendance_bp)
+    app.register_blueprint(dashboard_bp)
+    app.register_blueprint(rehearsals_bp)
 
     with app.app_context():
         db.create_all()

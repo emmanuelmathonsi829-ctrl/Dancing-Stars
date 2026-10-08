@@ -184,18 +184,15 @@ function loadPage(page) {
             );
             break;
 
+
         case "attendance":
-            showComingSoon(
-                "Attendance",
-                "Attendance management will appear here."
-            );
+            loadAttendance();
             break;
 
+
+
         case "rehearsals":
-            showComingSoon(
-                "Rehearsals",
-                "Rehearsal management will appear here."
-            );
+            loadRehearsals();
             break;
 
         case "uniform":
@@ -241,6 +238,706 @@ function loadPage(page) {
             showOverview();
     }
 }
+
+
+async function loadAttendance() {
+    pageContentElement.innerHTML = `
+        <div class="welcome-section">
+            <p class="section-label">ATTENDANCE</p>
+            <h2>Attendance</h2>
+            <p>Select a rehearsal to manage attendance.</p>
+        </div>
+
+        <div class="dashboard-card">
+            <div class="card-header">
+                <div>
+                    <p class="section-label">REHEARSALS</p>
+                    <h3>Select Rehearsal</h3>
+                </div>
+            </div>
+            <div id="attendanceRehearsals" class="empty-state">
+                Loading rehearsals...
+            </div>
+        </div>
+    `;
+
+    try {
+        const response = await fetch(`${API_URL}/api/attendance/rehearsals`, {
+            headers: {
+                "Authorization": `Bearer ${token}`
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error("Failed to load rehearsals");
+        }
+
+        const data = await response.json();
+        const container = document.getElementById("attendanceRehearsals");
+
+        if (!data.rehearsals || data.rehearsals.length === 0) {
+            container.innerHTML = `
+                <div class="empty-state">
+                    No rehearsals available.
+                </div>
+            `;
+            return;
+        }
+
+        container.className = "attendance-rehearsals";
+
+        container.innerHTML = data.rehearsals.map(rehearsal => `
+            <button
+                type="button"
+                class="attendance-rehearsal"
+                onclick="openAttendance(${rehearsal.id})"
+            >
+                <strong>${escapeHtml(rehearsal.title)}</strong>
+                <span>${formatAttendanceDate(rehearsal.rehearsal_date)}</span>
+                <span>${rehearsal.start_time ? formatAttendanceTime(rehearsal.start_time) : ""}</span>
+                <span>${rehearsal.location ? escapeHtml(rehearsal.location) : ""}</span>
+            </button>
+        `).join("");
+    } catch (error) {
+        console.error(error);
+
+        document.getElementById("attendanceRehearsals").innerHTML = `
+            <div class="form-message error">
+                Unable to load rehearsals.
+            </div>
+        `;
+    }
+}
+
+async function openAttendance(rehearsalId) {
+    pageContentElement.innerHTML = `
+        <div class="welcome-section">
+            <p class="section-label">ATTENDANCE</p>
+            <h2>Loading...</h2>
+            <p>Loading attendance records.</p>
+        </div>
+    `;
+
+    try {
+        const response = await fetch(
+            `${API_URL}/api/attendance/rehearsals/${rehearsalId}`,
+            {
+                headers: {
+                    "Authorization": `Bearer ${token}`
+                }
+            }
+        );
+
+        if (!response.ok) {
+            throw new Error("Failed to load attendance");
+        }
+
+        const data = await response.json();
+        const rehearsal = data.rehearsal;
+
+        pageContentElement.innerHTML = `
+            <div class="welcome-section">
+                <p class="section-label">ATTENDANCE</p>
+                <h2>${escapeHtml(rehearsal.title)}</h2>
+                <p>
+                    ${formatAttendanceDate(rehearsal.rehearsal_date)}
+                    ${rehearsal.start_time ? " • " + formatAttendanceTime(rehearsal.start_time) : ""}
+                </p>
+            </div>
+
+            <div class="dashboard-card">
+                <div class="card-header">
+                    <div>
+                        <p class="section-label">DANCERS</p>
+                        <h3>Mark Attendance</h3>
+                    </div>
+                </div>
+
+                <div id="attendanceList" class="attendance-list">
+                    ${data.attendance.map(dancer => `
+                        <div class="attendance-row">
+                            <div class="attendance-dancer">
+                                <div class="dancer-avatar">
+                                    ${escapeHtml(dancer.username.charAt(0).toUpperCase())}
+                                </div>
+
+                                <div>
+                                    <strong>${escapeHtml(dancer.username)}</strong>
+                                    <span>
+                                        ${dancer.marked_by
+                                            ? `Marked by ${escapeHtml(dancer.marked_by)}`
+                                            : "Not marked yet"}
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div class="attendance-actions">
+                                <button
+                                    type="button"
+                                    class="attendance-button present ${dancer.status === "PRESENT" ? "selected" : ""}"
+                                    onclick="markAttendance(${rehearsalId}, ${dancer.dancer_id}, 'PRESENT', this)"
+                                >
+                                    Present
+                                </button>
+
+                                <button
+                                    type="button"
+                                    class="attendance-button absent ${dancer.status === "ABSENT" ? "selected" : ""}"
+                                    onclick="markAttendance(${rehearsalId}, ${dancer.dancer_id}, 'ABSENT', this)"
+                                >
+                                    Absent
+                                </button>
+                            </div>
+                        </div>
+                    `).join("")}
+                </div>
+            </div>
+        `;
+    } catch (error) {
+        console.error(error);
+
+        pageContentElement.innerHTML = `
+            <div class="dashboard-card">
+                <div class="form-message error">
+                    Unable to load attendance.
+                </div>
+            </div>
+        `;
+    }
+}
+
+async function markAttendance(rehearsalId, dancerId, status, button) {
+    button.disabled = true;
+
+    try {
+        const response = await fetch(
+            `${API_URL}/api/attendance/rehearsals/${rehearsalId}/dancers/${dancerId}`,
+            {
+                method: "PATCH",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    status: status
+                })
+            }
+        );
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.error || "Failed to update attendance");
+        }
+
+        const row = button.closest(".attendance-row");
+
+        row.querySelectorAll(".attendance-button").forEach(item => {
+            item.classList.remove("selected");
+        });
+
+        button.classList.add("selected");
+
+        const info = row.querySelector(".attendance-dancer span");
+
+        if (currentUser) {
+            info.textContent = `Marked by ${currentUser.username}`;
+        }
+    } catch (error) {
+        console.error(error);
+        alert(error.message);
+    } finally {
+        button.disabled = false;
+    }
+}
+
+function formatAttendanceDate(dateString) {
+    if (!dateString) {
+        return "";
+    }
+
+    const date = new Date(`${dateString}T00:00:00`);
+
+    return date.toLocaleDateString("en-ZA", {
+        weekday: "long",
+        day: "numeric",
+        month: "long",
+        year: "numeric"
+    });
+}
+
+function formatAttendanceTime(timeString) {
+    if (!timeString) {
+        return "";
+    }
+
+    const parts = timeString.split(":");
+    const hour = Number(parts[0]);
+    const minute = parts[1];
+
+    const period = hour >= 12 ? "PM" : "AM";
+    const displayHour = hour % 12 || 12;
+
+    return `${displayHour}:${minute} ${period}`;
+}
+
+
+
+async function loadRehearsals() {
+    pageContentElement.innerHTML = `
+        <div class="welcome-section">
+            <p class="section-label">REHEARSALS</p>
+            <h2>Rehearsals</h2>
+            <p>Manage Dancing Stars rehearsals.</p>
+        </div>
+
+        <div class="dancers-toolbar">
+            <input
+                type="text"
+                id="rehearsalSearch"
+                placeholder="Search rehearsals..."
+            >
+
+            <button
+                type="button"
+                class="dashboard-action"
+                onclick="showCreateRehearsal()"
+            >
+                Add Rehearsal
+            </button>
+        </div>
+
+        <div class="dashboard-card">
+            <div id="rehearsalsList" class="rehearsals-list">
+                Loading rehearsals...
+            </div>
+        </div>
+    `;
+
+    try {
+        const response = await fetch(`${API_URL}/api/rehearsals`, {
+            headers: {
+                "Authorization": `Bearer ${token}`
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error("Failed to load rehearsals");
+        }
+
+        const data = await response.json();
+
+        renderRehearsals(data.rehearsals);
+
+        document.getElementById("rehearsalSearch").addEventListener(
+            "input",
+            function() {
+                const search = this.value.toLowerCase();
+
+                const filtered = data.rehearsals.filter(rehearsal =>
+                    rehearsal.title.toLowerCase().includes(search) ||
+                    rehearsal.rehearsal_date.includes(search) ||
+                    (rehearsal.location || "").toLowerCase().includes(search)
+                );
+
+                renderRehearsals(filtered);
+            }
+        );
+    } catch (error) {
+        console.error(error);
+
+        document.getElementById("rehearsalsList").innerHTML = `
+            <div class="form-message error">
+                Unable to load rehearsals.
+            </div>
+        `;
+    }
+}
+
+function renderRehearsals(rehearsals) {
+    const container = document.getElementById("rehearsalsList");
+
+    if (!rehearsals.length) {
+        container.innerHTML = `
+            <div class="empty-state">
+                No rehearsals found.
+            </div>
+        `;
+        return;
+    }
+
+    container.innerHTML = rehearsals.map(rehearsal => `
+        <div class="rehearsal-card">
+            <div class="rehearsal-info">
+                <span class="section-label">
+                    ${formatAttendanceDate(rehearsal.rehearsal_date)}
+                </span>
+
+                <h3>${escapeHtml(rehearsal.title)}</h3>
+
+                <p>
+                    ${rehearsal.start_time
+                        ? formatAttendanceTime(rehearsal.start_time)
+                        : ""}
+                    ${rehearsal.end_time
+                        ? ` - ${formatAttendanceTime(rehearsal.end_time)}`
+                        : ""}
+                </p>
+
+                ${rehearsal.location
+                    ? `<p>${escapeHtml(rehearsal.location)}</p>`
+                    : ""}
+            </div>
+
+            <div class="rehearsal-actions">
+                <button
+                    type="button"
+                    class="dashboard-secondary"
+                    onclick="openAttendance(${rehearsal.id})"
+                >
+                    Attendance
+                </button>
+
+                <button
+                    type="button"
+                    class="dashboard-secondary"
+                    onclick="editRehearsal(${rehearsal.id})"
+                >
+                    Edit
+                </button>
+
+                <button
+                    type="button"
+                    class="dashboard-danger"
+                    onclick="deleteRehearsal(${rehearsal.id})"
+                >
+                    Delete
+                </button>
+            </div>
+        </div>
+    `).join("");
+}
+
+function showCreateRehearsal() {
+    pageContentElement.innerHTML = `
+        <div class="welcome-section">
+            <p class="section-label">REHEARSALS</p>
+            <h2>Add Rehearsal</h2>
+            <p>Create a rehearsal for Dancing Stars.</p>
+        </div>
+
+        <div class="dashboard-card">
+            <form id="rehearsalForm">
+                <div class="form-group">
+                    <label for="rehearsalTitle">Title</label>
+                    <input
+                        type="text"
+                        id="rehearsalTitle"
+                        value="Dancing Stars Rehearsal"
+                        required
+                    >
+                </div>
+
+                <div class="form-group">
+                    <label for="rehearsalDate">Date</label>
+                    <input
+                        type="date"
+                        id="rehearsalDate"
+                        required
+                    >
+                </div>
+
+                <div class="form-group">
+                    <label for="rehearsalStart">Start Time</label>
+                    <input
+                        type="time"
+                        id="rehearsalStart"
+                        value="17:00"
+                        required
+                    >
+                </div>
+
+                <div class="form-group">
+                    <label for="rehearsalEnd">End Time</label>
+                    <input
+                        type="time"
+                        id="rehearsalEnd"
+                    >
+                </div>
+
+                <div class="form-group">
+                    <label for="rehearsalLocation">Location</label>
+                    <input
+                        type="text"
+                        id="rehearsalLocation"
+                        placeholder="Rehearsal location"
+                    >
+                </div>
+
+                <div class="form-group">
+                    <label for="rehearsalDescription">Description</label>
+                    <input
+                        type="text"
+                        id="rehearsalDescription"
+                        placeholder="Optional description"
+                    >
+                </div>
+
+                <div id="rehearsalFormMessage"></div>
+
+                <div class="dancer-form-actions">
+                    <button
+                        type="submit"
+                        class="dashboard-action"
+                    >
+                        Create Rehearsal
+                    </button>
+
+                    <button
+                        type="button"
+                        class="dashboard-secondary"
+                        onclick="loadRehearsals()"
+                    >
+                        Cancel
+                    </button>
+                </div>
+            </form>
+        </div>
+    `;
+
+    document.getElementById("rehearsalForm").addEventListener(
+        "submit",
+        createRehearsal
+    );
+}
+
+async function createRehearsal(event) {
+    event.preventDefault();
+
+    const message = document.getElementById("rehearsalFormMessage");
+
+    const data = {
+        title: document.getElementById("rehearsalTitle").value.trim(),
+        rehearsal_date: document.getElementById("rehearsalDate").value,
+        start_time: document.getElementById("rehearsalStart").value,
+        end_time: document.getElementById("rehearsalEnd").value || null,
+        location: document.getElementById("rehearsalLocation").value.trim() || null,
+        description: document.getElementById("rehearsalDescription").value.trim() || null
+    };
+
+    try {
+        const response = await fetch(`${API_URL}/api/rehearsals`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${token}`
+            },
+            body: JSON.stringify(data)
+        });
+
+        const result = await response.json();
+
+        if (!response.ok) {
+            throw new Error(result.error || "Failed to create rehearsal");
+        }
+
+        loadRehearsals();
+    } catch (error) {
+        message.innerHTML = `
+            <div class="form-message error">
+                ${escapeHtml(error.message)}
+            </div>
+        `;
+    }
+}
+
+async function editRehearsal(rehearsalId) {
+    try {
+        const response = await fetch(
+            `${API_URL}/api/rehearsals/${rehearsalId}`,
+            {
+                headers: {
+                    "Authorization": `Bearer ${token}`
+                }
+            }
+        );
+
+        if (!response.ok) {
+            throw new Error("Failed to load rehearsal");
+        }
+
+        const rehearsal = await response.json();
+
+        pageContentElement.innerHTML = `
+            <div class="welcome-section">
+                <p class="section-label">REHEARSALS</p>
+                <h2>Edit Rehearsal</h2>
+                <p>Update rehearsal information.</p>
+            </div>
+
+            <div class="dashboard-card">
+                <form id="editRehearsalForm">
+                    <div class="form-group">
+                        <label for="editRehearsalTitle">Title</label>
+                        <input
+                            type="text"
+                            id="editRehearsalTitle"
+                            value="${escapeHtml(rehearsal.title)}"
+                            required
+                        >
+                    </div>
+
+                    <div class="form-group">
+                        <label for="editRehearsalDate">Date</label>
+                        <input
+                            type="date"
+                            id="editRehearsalDate"
+                            value="${rehearsal.rehearsal_date}"
+                            required
+                        >
+                    </div>
+
+                    <div class="form-group">
+                        <label for="editRehearsalStart">Start Time</label>
+                        <input
+                            type="time"
+                            id="editRehearsalStart"
+                            value="${rehearsal.start_time || ""}"
+                        >
+                    </div>
+
+                    <div class="form-group">
+                        <label for="editRehearsalEnd">End Time</label>
+                        <input
+                            type="time"
+                            id="editRehearsalEnd"
+                            value="${rehearsal.end_time || ""}"
+                        >
+                    </div>
+
+                    <div class="form-group">
+                        <label for="editRehearsalLocation">Location</label>
+                        <input
+                            type="text"
+                            id="editRehearsalLocation"
+                            value="${escapeHtml(rehearsal.location || "")}"
+                        >
+                    </div>
+
+                    <div class="form-group">
+                        <label for="editRehearsalDescription">Description</label>
+                        <input
+                            type="text"
+                            id="editRehearsalDescription"
+                            value="${escapeHtml(rehearsal.description || "")}"
+                        >
+                    </div>
+
+                    <div id="editRehearsalMessage"></div>
+
+                    <div class="dancer-form-actions">
+                        <button
+                            type="submit"
+                            class="dashboard-action"
+                        >
+                            Save Changes
+                        </button>
+
+                        <button
+                            type="button"
+                            class="dashboard-secondary"
+                            onclick="loadRehearsals()"
+                        >
+                            Cancel
+                        </button>
+                    </div>
+                </form>
+            </div>
+        `;
+
+        document.getElementById("editRehearsalForm").addEventListener(
+            "submit",
+            event => updateRehearsal(event, rehearsalId)
+        );
+    } catch (error) {
+        alert(error.message);
+    }
+}
+
+async function updateRehearsal(event, rehearsalId) {
+    event.preventDefault();
+
+    const message = document.getElementById("editRehearsalMessage");
+
+    const data = {
+        title: document.getElementById("editRehearsalTitle").value.trim(),
+        rehearsal_date: document.getElementById("editRehearsalDate").value,
+        start_time: document.getElementById("editRehearsalStart").value || null,
+        end_time: document.getElementById("editRehearsalEnd").value || null,
+        location: document.getElementById("editRehearsalLocation").value.trim() || null,
+        description: document.getElementById("editRehearsalDescription").value.trim() || null
+    };
+
+    try {
+        const response = await fetch(
+            `${API_URL}/api/rehearsals/${rehearsalId}`,
+            {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${token}`
+                },
+                body: JSON.stringify(data)
+            }
+        );
+
+        const result = await response.json();
+
+        if (!response.ok) {
+            throw new Error(result.error || "Failed to update rehearsal");
+        }
+
+        loadRehearsals();
+    } catch (error) {
+        message.innerHTML = `
+            <div class="form-message error">
+                ${escapeHtml(error.message)}
+            </div>
+        `;
+    }
+}
+
+async function deleteRehearsal(rehearsalId) {
+    if (!confirm("Delete this rehearsal? Attendance records may also be affected.")) {
+        return;
+    }
+
+    try {
+        const response = await fetch(
+            `${API_URL}/api/rehearsals/${rehearsalId}`,
+            {
+                method: "DELETE",
+                headers: {
+                    "Authorization": `Bearer ${token}`
+                }
+            }
+        );
+
+        const result = await response.json();
+
+        if (!response.ok) {
+            throw new Error(result.error || "Failed to delete rehearsal");
+        }
+
+        loadRehearsals();
+    } catch (error) {
+        alert(error.message);
+    }
+}
+
+
+
+
 
 function showSettings() {
 
@@ -491,102 +1188,146 @@ async function deleteAccount() {
 }
 
 
-function showOverview() {
 
+async function showOverview() {
     pageContentElement.innerHTML = `
-
         <div class="welcome-section">
-
-            <p class="section-label">
-                OVERVIEW
-            </p>
-
-            <h2>
-                Welcome back,
-                <span>
-                    ${escapeHtml(usernameElement.textContent)}
-                </span>
-            </h2>
-
-            <p>
-                Manage Dancing Stars from one place.
-            </p>
-
+            <p class="section-label">OVERVIEW</p>
+            <h2>Welcome back, <span>${escapeHtml(usernameElement.textContent)}</span></h2>
+            <p>Manage Dancing Stars from one place.</p>
         </div>
 
         <div class="stats-grid">
-
             <div class="stat-card">
                 <span class="stat-label">DANCERS</span>
-                <strong class="stat-value">—</strong>
+                <strong class="stat-value" id="overviewDancerCount">—</strong>
                 <span class="stat-description">Active members</span>
             </div>
 
             <div class="stat-card">
                 <span class="stat-label">REHEARSALS</span>
-                <strong class="stat-value">—</strong>
+                <strong class="stat-value" id="overviewRehearsalCount">—</strong>
                 <span class="stat-description">Upcoming rehearsals</span>
             </div>
 
             <div class="stat-card">
                 <span class="stat-label">ATTENDANCE</span>
-                <strong class="stat-value">—</strong>
-                <span class="stat-description">Recent attendance</span>
+                <strong class="stat-value" id="overviewAttendanceRate">—</strong>
+                <span class="stat-description">Latest rehearsal</span>
             </div>
 
             <div class="stat-card">
                 <span class="stat-label">DANCES</span>
-                <strong class="stat-value">—</strong>
+                <strong class="stat-value" id="overviewDanceCount">—</strong>
                 <span class="stat-description">In the library</span>
             </div>
-
         </div>
 
         <div class="dashboard-grid">
-
             <div class="dashboard-card">
-
                 <div class="card-header">
-
-                    <p class="section-label">
-                        NEXT
-                    </p>
-
-                    <h3>
-                        Upcoming Rehearsal
-                    </h3>
-
+                    <div>
+                        <p class="section-label">NEXT</p>
+                        <h3>Upcoming Rehearsal</h3>
+                    </div>
                 </div>
 
+                <div id="overviewNextRehearsal" class="empty-state">
+                    Loading...
+                </div>
+            </div>
+
+            <div class="dashboard-card">
+                <div class="card-header">
+                    <div>
+                        <p class="section-label">RECENT</p>
+                        <h3>Recent Activity</h3>
+                    </div>
+                </div>
+
+                <div class="empty-state">
+                    Activity history will appear here.
+                </div>
+            </div>
+        </div>
+    `;
+
+    try {
+        const response = await fetch(`${API_URL}/api/dashboard/overview`, {
+            headers: {
+                "Authorization": `Bearer ${token}`
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error("Failed to load dashboard overview");
+        }
+
+        const data = await response.json();
+
+        document.getElementById("overviewDancerCount").textContent =
+            data.dancers;
+
+        document.getElementById("overviewRehearsalCount").textContent =
+            data.upcoming_rehearsals;
+
+        document.getElementById("overviewAttendanceRate").textContent =
+            data.attendance_rate === null
+                ? "—"
+                : `${data.attendance_rate}%`;
+
+        document.getElementById("overviewDanceCount").textContent =
+            data.dances;
+
+        const nextRehearsalElement =
+            document.getElementById("overviewNextRehearsal");
+
+        if (!data.next_rehearsal) {
+            nextRehearsalElement.innerHTML = `
                 <div class="empty-state">
                     No upcoming rehearsal.
                 </div>
+            `;
+            return;
+        }
 
+        const rehearsal = data.next_rehearsal;
+
+        nextRehearsalElement.innerHTML = `
+            <div class="overview-rehearsal">
+                <strong>${escapeHtml(rehearsal.title)}</strong>
+
+                <span>
+                    ${formatAttendanceDate(rehearsal.date)}
+                </span>
+
+                <span>
+                    ${rehearsal.start_time
+                        ? formatAttendanceTime(rehearsal.start_time)
+                        : ""}
+                    ${rehearsal.location
+                        ? ` • ${escapeHtml(rehearsal.location)}`
+                        : ""}
+                </span>
             </div>
+        `;
+    } catch (error) {
+        console.error(error);
 
-            <div class="dashboard-card">
+        document.getElementById("overviewDancerCount").textContent = "—";
+        document.getElementById("overviewRehearsalCount").textContent = "—";
+        document.getElementById("overviewAttendanceRate").textContent = "—";
+        document.getElementById("overviewDanceCount").textContent = "—";
 
-                <div class="card-header">
-
-                    <p class="section-label">
-                        RECENT
-                    </p>
-
-                    <h3>
-                        Recent Activity
-                    </h3>
-
-                </div>
-
-                <div class="empty-state">
-                    No recent activity.
-                </div>
-
+        document.getElementById("overviewNextRehearsal").innerHTML = `
+            <div class="form-message error">
+                Unable to load dashboard information.
             </div>
-
-        </div>
-    `;
+        `;
+    }
 }
+
+
 
 
 async function loadDancers() {

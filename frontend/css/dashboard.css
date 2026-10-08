@@ -1082,3 +1082,73 @@ body {
     }
 }
 
+
+.overview-rehearsal {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.overview-rehearsal strong {
+    font-size: 20px;
+}
+
+.overview-rehearsal span {
+    color: var(--text-muted);
+    font-size: 14px;
+}
+
+
+.rehearsals-list {
+    display: flex;
+    flex-direction: column;
+}
+
+.rehearsal-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    padding: 20px 0;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.rehearsal-card:last-child {
+    border-bottom: none;
+}
+
+.rehearsal-info {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.rehearsal-info h3 {
+    margin: 0;
+}
+
+.rehearsal-info p {
+    margin: 0;
+    color: var(--text-muted);
+    font-size: 14px;
+}
+
+.rehearsal-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+}
+
+@media (max-width: 750px) {
+    .rehearsal-card {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .rehearsal-actions {
+        width: 100%;
+        justify-content: flex-start;
+    }
+}
+
