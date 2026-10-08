@@ -178,10 +178,7 @@ function loadPage(page) {
             break;
 
         case "roles":
-            showComingSoon(
-                "Roles",
-                "Role and permission management will appear here."
-            );
+            loadRoles();
             break;
 
 
@@ -308,6 +305,511 @@ async function loadAttendance() {
         `;
     }
 }
+
+
+async function loadRoles() {
+    pageContentElement.innerHTML = `
+        <div class="page-header">
+            <div>
+                <p class="section-label">ACCESS CONTROL</p>
+                <h2>Roles</h2>
+                <p>Create roles and control what users are allowed to do.</p>
+            </div>
+            <button class="primary-button" type="button" onclick="showCreateRole()">
+                + Create Role
+            </button>
+        </div>
+
+        <div id="rolesMessage"></div>
+
+        <div id="rolesList" class="roles-list">
+            <div class="empty-state">Loading roles...</div>
+        </div>
+    `;
+
+    try {
+        const response = await fetch(`${API_URL}/api/roles`, {
+            headers: {
+                "Authorization": `Bearer ${token}`
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error("Failed to load roles");
+        }
+
+        const data = await response.json();
+
+        renderRoles(data.roles);
+    } catch (error) {
+        console.error(error);
+
+        document.getElementById("rolesList").innerHTML = `
+            <div class="form-message error">
+                Unable to load roles.
+            </div>
+        `;
+    }
+}
+
+function renderRoles(roles) {
+    const rolesList = document.getElementById("rolesList");
+
+    if (!roles.length) {
+        rolesList.innerHTML = `
+            <div class="empty-state">
+                No roles have been created yet.
+            </div>
+        `;
+        return;
+    }
+
+    rolesList.innerHTML = roles.map(role => `
+        <div class="role-card">
+            <div class="role-card-header">
+                <div>
+                    <p class="section-label">ROLE</p>
+                    <h3>${escapeHtml(role.name)}</h3>
+                    <p class="role-description">
+                        ${escapeHtml(role.description || "No description")}
+                    </p>
+                </div>
+
+                <div class="role-actions">
+                    <button
+                        class="secondary-button"
+                        type="button"
+                        onclick="editRole(${role.id}, '${escapeHtml(role.name)}', '${escapeHtml(role.description || "")}')"
+                    >
+                        Edit
+                    </button>
+
+                    <button
+                        class="danger-button"
+                        type="button"
+                        onclick="deleteRole(${role.id}, '${escapeHtml(role.name)}')"
+                    >
+                        Delete
+                    </button>
+                </div>
+            </div>
+
+            <div class="role-permissions">
+                <span class="permission-label">Permissions</span>
+
+                <div class="permission-list">
+                    ${
+                        role.permissions.length
+                        ? role.permissions.map(permission => `
+                            <span class="permission-tag">
+                                ${escapeHtml(permission.name)}
+                            </span>
+                        `).join("")
+                        : `
+                            <span class="no-permissions">
+                                No permissions assigned
+                            </span>
+                        `
+                    }
+                </div>
+            </div>
+
+            <button
+                class="permission-button"
+                type="button"
+                onclick="manageRolePermissions(${role.id}, '${escapeHtml(role.name)}')"
+            >
+                Manage Permissions
+            </button>
+        </div>
+    `).join("");
+}
+
+function showCreateRole() {
+    pageContentElement.innerHTML = `
+        <div class="page-header">
+            <div>
+                <p class="section-label">ROLES</p>
+                <h2>Create Role</h2>
+                <p>Create a permission bundle for users.</p>
+            </div>
+
+            <button
+                class="secondary-button"
+                type="button"
+                onclick="loadRoles()"
+            >
+                ← Back
+            </button>
+        </div>
+
+        <div class="form-card">
+            <form id="createRoleForm">
+                <div class="form-group">
+                    <label for="roleName">Role Name</label>
+                    <input
+                        id="roleName"
+                        type="text"
+                        placeholder="e.g. Dance Captain"
+                        required
+                    >
+                </div>
+
+                <div class="form-group">
+                    <label for="roleDescription">Description</label>
+                    <textarea
+                        id="roleDescription"
+                        placeholder="Describe what this role is for"
+                        rows="4"
+                    ></textarea>
+                </div>
+
+                <div id="createRoleMessage"></div>
+
+                <button class="primary-button" type="submit">
+                    Create Role
+                </button>
+            </form>
+        </div>
+    `;
+
+    document
+        .getElementById("createRoleForm")
+        .addEventListener("submit", createRole);
+}
+
+async function createRole(event) {
+    event.preventDefault();
+
+    const name = document.getElementById("roleName").value.trim();
+    const description = document.getElementById("roleDescription").value.trim();
+    const messageElement = document.getElementById("createRoleMessage");
+
+    if (!name) {
+        messageElement.innerHTML = `
+            <div class="form-message error">
+                Role name is required.
+            </div>
+        `;
+        return;
+    }
+
+    try {
+        const response = await fetch(`${API_URL}/api/roles`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${token}`
+            },
+            body: JSON.stringify({
+                name,
+                description
+            })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.error || "Failed to create role");
+        }
+
+        loadRoles();
+    } catch (error) {
+        messageElement.innerHTML = `
+            <div class="form-message error">
+                ${escapeHtml(error.message)}
+            </div>
+        `;
+    }
+}
+
+function editRole(id, name, description) {
+    pageContentElement.innerHTML = `
+        <div class="page-header">
+            <div>
+                <p class="section-label">ROLES</p>
+                <h2>Edit Role</h2>
+                <p>Update the role information.</p>
+            </div>
+
+            <button
+                class="secondary-button"
+                type="button"
+                onclick="loadRoles()"
+            >
+                ← Back
+            </button>
+        </div>
+
+        <div class="form-card">
+            <form id="editRoleForm">
+                <div class="form-group">
+                    <label for="editRoleName">Role Name</label>
+                    <input
+                        id="editRoleName"
+                        type="text"
+                        value="${escapeHtml(name)}"
+                        required
+                    >
+                </div>
+
+                <div class="form-group">
+                    <label for="editRoleDescription">Description</label>
+                    <textarea
+                        id="editRoleDescription"
+                        rows="4"
+                    >${escapeHtml(description)}</textarea>
+                </div>
+
+                <div id="editRoleMessage"></div>
+
+                <button class="primary-button" type="submit">
+                    Save Changes
+                </button>
+            </form>
+        </div>
+    `;
+
+    document
+        .getElementById("editRoleForm")
+        .addEventListener("submit", async event => {
+            event.preventDefault();
+
+            const newName = document
+                .getElementById("editRoleName")
+                .value
+                .trim();
+
+            const newDescription = document
+                .getElementById("editRoleDescription")
+                .value
+                .trim();
+
+            const messageElement =
+                document.getElementById("editRoleMessage");
+
+            try {
+                const response = await fetch(
+                    `${API_URL}/api/roles/${id}`,
+                    {
+                        method: "PUT",
+                        headers: {
+                            "Content-Type": "application/json",
+                            "Authorization": `Bearer ${token}`
+                        },
+                        body: JSON.stringify({
+                            name: newName,
+                            description: newDescription
+                        })
+                    }
+                );
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(
+                        data.error || "Failed to update role"
+                    );
+                }
+
+                loadRoles();
+            } catch (error) {
+                messageElement.innerHTML = `
+                    <div class="form-message error">
+                        ${escapeHtml(error.message)}
+                    </div>
+                `;
+            }
+        });
+}
+
+async function deleteRole(id, name) {
+    const confirmed = confirm(
+        `Delete the role "${name}"? This will also remove its permissions and assignments.`
+    );
+
+    if (!confirmed) {
+        return;
+    }
+
+    try {
+        const response = await fetch(
+            `${API_URL}/api/roles/${id}`,
+            {
+                method: "DELETE",
+                headers: {
+                    "Authorization": `Bearer ${token}`
+                }
+            }
+        );
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(
+                data.error || "Failed to delete role"
+            );
+        }
+
+        loadRoles();
+    } catch (error) {
+        alert(error.message);
+    }
+}
+
+async function manageRolePermissions(roleId, roleName) {
+    pageContentElement.innerHTML = `
+        <div class="page-header">
+            <div>
+                <p class="section-label">ROLES</p>
+                <h2>${escapeHtml(roleName)}</h2>
+                <p>Choose the permissions for this role.</p>
+            </div>
+
+            <button
+                class="secondary-button"
+                type="button"
+                onclick="loadRoles()"
+            >
+                ← Back
+            </button>
+        </div>
+
+        <div id="permissionsContainer">
+            <div class="empty-state">
+                Loading permissions...
+            </div>
+        </div>
+    `;
+
+    try {
+        const [rolesResponse, permissionsResponse] = await Promise.all([
+            fetch(`${API_URL}/api/roles`, {
+                headers: {
+                    "Authorization": `Bearer ${token}`
+                }
+            }),
+            fetch(`${API_URL}/api/roles/permissions`, {
+                headers: {
+                    "Authorization": `Bearer ${token}`
+                }
+            })
+        ]);
+
+        if (!rolesResponse.ok || !permissionsResponse.ok) {
+            throw new Error("Failed to load permissions");
+        }
+
+        const rolesData = await rolesResponse.json();
+        const permissionsData = await permissionsResponse.json();
+
+        const role = rolesData.roles.find(
+            item => item.id === roleId
+        );
+
+        if (!role) {
+            throw new Error("Role not found");
+        }
+
+        renderRolePermissions(
+            role,
+            permissionsData.permissions
+        );
+    } catch (error) {
+        document.getElementById("permissionsContainer").innerHTML = `
+            <div class="form-message error">
+                ${escapeHtml(error.message)}
+            </div>
+        `;
+    }
+}
+
+function renderRolePermissions(role, permissions) {
+    const assignedPermissions = new Set(
+        role.permissions.map(permission => permission.id)
+    );
+
+    document.getElementById("permissionsContainer").innerHTML = `
+        <div class="form-card">
+            <form id="permissionsForm">
+                <div class="permissions-grid">
+                    ${permissions.map(permission => `
+                        <label class="permission-option">
+                            <input
+                                type="checkbox"
+                                name="permission"
+                                value="${permission.id}"
+                                ${assignedPermissions.has(permission.id) ? "checked" : ""}
+                            >
+
+                            <span>
+                                <strong>${escapeHtml(permission.name)}</strong>
+                                <small>
+                                    ${escapeHtml(permission.description || "")}
+                                </small>
+                            </span>
+                        </label>
+                    `).join("")}
+                </div>
+
+                <div id="permissionsMessage"></div>
+
+                <button class="primary-button" type="submit">
+                    Save Permissions
+                </button>
+            </form>
+        </div>
+    `;
+
+    document
+        .getElementById("permissionsForm")
+        .addEventListener("submit", async event => {
+            event.preventDefault();
+
+            const selectedPermissions = Array.from(
+                document.querySelectorAll(
+                    '#permissionsForm input[name="permission"]:checked'
+                )
+            ).map(input => Number(input.value));
+
+            const messageElement =
+                document.getElementById("permissionsMessage");
+
+            try {
+                const response = await fetch(
+                    `${API_URL}/api/roles/${role.id}/permissions`,
+                    {
+                        method: "PUT",
+                        headers: {
+                            "Content-Type": "application/json",
+                            "Authorization": `Bearer ${token}`
+                        },
+                        body: JSON.stringify({
+                            permission_ids: selectedPermissions
+                        })
+                    }
+                );
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(
+                        data.error || "Failed to update permissions"
+                    );
+                }
+
+                loadRoles();
+            } catch (error) {
+                messageElement.innerHTML = `
+                    <div class="form-message error">
+                        ${escapeHtml(error.message)}
+                    </div>
+                `;
+            }
+        });
+}
+
+
 
 async function openAttendance(rehearsalId) {
     pageContentElement.innerHTML = `
