@@ -876,142 +876,379 @@ async function manageRoleUsers(roleId, roleName) {
 
 function renderRoleUsers(roleId, roleName, users, assignedUserIds) {
     document.getElementById("roleUsersContainer").innerHTML = `
-        <div class="form-card">
-            <form id="roleUsersForm">
+        <div class="assign-users-layout">
 
-                <div class="role-users-list">
-                    ${
-                        users.length
-                        ? users.map(user => `
-                            <label class="role-user-option">
-                                <input
-                                    type="checkbox"
-                                    value="${user.id}"
-                                    ${assignedUserIds.has(user.id) ? "checked" : ""}
-                                >
-
-                                <span>
-                                    <strong>
-                                        ${escapeHtml(user.username)}
-                                    </strong>
-
-                                    <small>
-                                        ${escapeHtml(user.status)}
-                                    </small>
-                                </span>
-                            </label>
-                        `).join("")
-                        : `
-                            <div class="empty-state">
-                                No dancers found.
-                            </div>
-                        `
-                    }
+            <aside class="assign-users-sidebar">
+                <div class="assign-role-info">
+                    <span class="assign-role-label">ROLE</span>
+                    <h3>${escapeHtml(roleName)}</h3>
+                    <p>Manage which users have this role.</p>
                 </div>
 
-                <div id="roleUsersMessage"></div>
+                <nav class="assign-users-tabs">
+                    <button
+                        type="button"
+                        class="assign-tab active"
+                        data-tab="all"
+                    >
+                        <span>All Users</span>
+                        <small>${users.length}</small>
+                    </button>
 
-                <button
-                    class="primary-button"
-                    type="submit"
-                >
-                    Save Assignments
-                </button>
-            </form>
+                    <button
+                        type="button"
+                        class="assign-tab"
+                        data-tab="assigned"
+                    >
+                        <span>Assigned</span>
+                        <small>${assignedUserIds.size}</small>
+                    </button>
+                </nav>
+            </aside>
+
+            <div class="assign-users-main">
+                <div class="assign-users-header">
+                    <div>
+                        <span class="section-label">USER ASSIGNMENTS</span>
+                        <h3>Select Users</h3>
+                        <p>Choose the users who should have this role.</p>
+                    </div>
+
+                    <div class="assign-users-count">
+                        <strong id="selectedUsersCount">
+                            ${assignedUserIds.size}
+                        </strong>
+                        <span>selected</span>
+                    </div>
+                </div>
+
+                <div class="assign-users-toolbar">
+                    <div class="assign-search">
+                        <span>⌕</span>
+                        <input
+                            type="text"
+                            id="roleUsersSearch"
+                            placeholder="Search users..."
+                            autocomplete="off"
+                        >
+                    </div>
+                </div>
+
+                <form id="roleUsersForm">
+
+                    <div class="role-users-list" id="roleUsersList">
+                        ${
+                            users.length
+                            ? users.map(user => `
+                                <label
+                                    class="role-user-option"
+                                    data-user-id="${user.id}"
+                                    data-username="${escapeHtml(
+                                        user.username.toLowerCase()
+                                    )}"
+                                    data-status="${escapeHtml(
+                                        user.status.toLowerCase()
+                                    )}"
+                                    data-assigned="${
+                                        assignedUserIds.has(user.id)
+                                    }"
+                                >
+                                    <div class="role-user-check">
+                                        <input
+                                            type="checkbox"
+                                            value="${user.id}"
+                                            ${assignedUserIds.has(user.id) ? "checked" : ""}
+                                        >
+
+                                        <span class="custom-check"></span>
+                                    </div>
+
+                                    <div class="role-user-avatar">
+                                        ${escapeHtml(
+                                            user.username
+                                                .charAt(0)
+                                                .toUpperCase()
+                                        )}
+                                    </div>
+
+                                    <span class="role-user-details">
+                                        <strong>
+                                            ${escapeHtml(user.username)}
+                                        </strong>
+
+                                        <small>
+                                            ${escapeHtml(user.status)}
+                                        </small>
+                                    </span>
+
+                                    <span class="role-user-status ${
+                                        user.status === "ACTIVE"
+                                            ? "active"
+                                            : "inactive"
+                                    }">
+                                        ${escapeHtml(user.status)}
+                                    </span>
+                                </label>
+                            `).join("")
+                            : `
+                                <div class="empty-state">
+                                    No dancers found.
+                                </div>
+                            `
+                        }
+                    </div>
+
+                    <div
+                        id="roleUsersEmptySearch"
+                        class="assign-empty-search"
+                        style="display: none;"
+                    >
+                        No users match your search.
+                    </div>
+
+                    <div id="roleUsersMessage"></div>
+
+                    <div class="assign-users-footer">
+                        <span>
+                            Changes will apply to
+                            <strong id="footerSelectedCount">
+                                ${assignedUserIds.size}
+                            </strong>
+                            users.
+                        </span>
+
+                        <button
+                            class="primary-button"
+                            type="submit"
+                        >
+                            Save Assignments
+                        </button>
+                    </div>
+
+                </form>
+            </div>
         </div>
     `;
 
-    document
-        .getElementById("roleUsersForm")
-        .addEventListener("submit", async event => {
-            event.preventDefault();
+    const form = document.getElementById("roleUsersForm");
+    const searchInput = document.getElementById("roleUsersSearch");
+    const userOptions = Array.from(
+        document.querySelectorAll(".role-user-option")
+    );
+    const tabs = Array.from(
+        document.querySelectorAll(".assign-tab")
+    );
 
-            const selectedIds = new Set(
-                Array.from(
-                    document.querySelectorAll(
-                        '#roleUsersForm input[type="checkbox"]:checked'
-                    )
-                ).map(input => Number(input.value))
-            );
+    const selectedCountElement =
+        document.getElementById("selectedUsersCount");
 
-            const messageElement =
-                document.getElementById("roleUsersMessage");
+    const footerSelectedCount =
+        document.getElementById("footerSelectedCount");
 
-            try {
-                const currentResponse = await fetch(
-                    `${API_URL}/api/roles/${roleId}/users`,
-                    {
-                        headers: {
-                            "Authorization": `Bearer ${token}`
-                        }
-                    }
-                );
+    const emptySearchElement =
+        document.getElementById("roleUsersEmptySearch");
 
-                if (!currentResponse.ok) {
-                    throw new Error("Failed to load current assignments");
-                }
+    function updateSelectedCount() {
+        const selectedCount =
+            document.querySelectorAll(
+                '#roleUsersForm input[type="checkbox"]:checked'
+            ).length;
 
-                const currentData = await currentResponse.json();
+        selectedCountElement.textContent = selectedCount;
+        footerSelectedCount.textContent = selectedCount;
+    }
 
-                const currentIds = new Set(
-                    currentData.users.map(user => user.id)
-                );
+    function applyFilters() {
+        const searchTerm =
+            searchInput.value.trim().toLowerCase();
 
-                for (const userId of selectedIds) {
-                    if (!currentIds.has(userId)) {
-                        const response = await fetch(
-                            `${API_URL}/api/roles/${roleId}/users/${userId}`,
-                            {
-                                method: "POST",
-                                headers: {
-                                    "Authorization": `Bearer ${token}`
-                                }
-                            }
-                        );
+        const activeTab =
+            document
+                .querySelector(".assign-tab.active")
+                ?.dataset.tab || "all";
 
-                        if (!response.ok && response.status !== 409) {
-                            const data = await response.json();
-                            throw new Error(
-                                data.error || "Failed to assign role"
-                            );
-                        }
-                    }
-                }
+        let visibleCount = 0;
 
-                for (const userId of currentIds) {
-                    if (!selectedIds.has(userId)) {
-                        const response = await fetch(
-                            `${API_URL}/api/roles/${roleId}/users/${userId}`,
-                            {
-                                method: "DELETE",
-                                headers: {
-                                    "Authorization": `Bearer ${token}`
-                                }
-                            }
-                        );
+        userOptions.forEach(option => {
+            const username =
+                option.dataset.username || "";
 
-                        if (!response.ok) {
-                            const data = await response.json();
-                            throw new Error(
-                                data.error || "Failed to remove role"
-                            );
-                        }
-                    }
-                }
+            const status =
+                option.dataset.status || "";
 
-                messageElement.innerHTML = `
-                    <div class="form-message success">
-                        Users assigned successfully.
-                    </div>
-                `;
-            } catch (error) {
-                messageElement.innerHTML = `
-                    <div class="form-message error">
-                        ${escapeHtml(error.message)}
-                    </div>
-                `;
+            const assigned =
+                option.dataset.assigned === "true";
+
+            const matchesSearch =
+                username.includes(searchTerm) ||
+                status.includes(searchTerm);
+
+            const matchesTab =
+                activeTab === "all" ||
+                (activeTab === "assigned" && assigned);
+
+            const visible =
+                matchesSearch && matchesTab;
+
+            option.style.display =
+                visible ? "flex" : "none";
+
+            if (visible) {
+                visibleCount++;
             }
         });
+
+        emptySearchElement.style.display =
+            visibleCount === 0 && userOptions.length
+                ? "block"
+                : "none";
+    }
+
+    tabs.forEach(tab => {
+        tab.addEventListener("click", () => {
+            tabs.forEach(item => {
+                item.classList.remove("active");
+            });
+
+            tab.classList.add("active");
+
+            applyFilters();
+        });
+    });
+
+    searchInput.addEventListener("input", applyFilters);
+
+    document
+        .querySelectorAll(
+            '#roleUsersForm input[type="checkbox"]'
+        )
+        .forEach(input => {
+            input.addEventListener("change", () => {
+                const option =
+                    input.closest(".role-user-option");
+
+                option.dataset.assigned =
+                    input.checked ? "true" : "false";
+
+                updateSelectedCount();
+
+                const assignedTab =
+                    document.querySelector(
+                        '.assign-tab[data-tab="assigned"] small'
+                    );
+
+                const assignedCount =
+                    document.querySelectorAll(
+                        '#roleUsersForm input[type="checkbox"]:checked'
+                    ).length;
+
+                assignedTab.textContent = assignedCount;
+            });
+        });
+
+    updateSelectedCount();
+
+    form.addEventListener("submit", async event => {
+        event.preventDefault();
+
+        const selectedIds = new Set(
+            Array.from(
+                document.querySelectorAll(
+                    '#roleUsersForm input[type="checkbox"]:checked'
+                )
+            ).map(input => Number(input.value))
+        );
+
+        const messageElement =
+            document.getElementById("roleUsersMessage");
+
+        try {
+            const currentResponse = await fetch(
+                `${API_URL}/api/roles/${roleId}/users`,
+                {
+                    headers: {
+                        "Authorization": `Bearer ${token}`
+                    }
+                }
+            );
+
+            if (!currentResponse.ok) {
+                throw new Error(
+                    "Failed to load current assignments"
+                );
+            }
+
+            const currentData =
+                await currentResponse.json();
+
+            const currentIds = new Set(
+                currentData.users.map(user => user.id)
+            );
+
+            for (const userId of selectedIds) {
+                if (!currentIds.has(userId)) {
+                    const response = await fetch(
+                        `${API_URL}/api/roles/${roleId}/users/${userId}`,
+                        {
+                            method: "POST",
+                            headers: {
+                                "Authorization": `Bearer ${token}`
+                            }
+                        }
+                    );
+
+                    if (
+                        !response.ok &&
+                        response.status !== 409
+                    ) {
+                        const data =
+                            await response.json();
+
+                        throw new Error(
+                            data.error ||
+                            "Failed to assign role"
+                        );
+                    }
+                }
+            }
+
+            for (const userId of currentIds) {
+                if (!selectedIds.has(userId)) {
+                    const response = await fetch(
+                        `${API_URL}/api/roles/${roleId}/users/${userId}`,
+                        {
+                            method: "DELETE",
+                            headers: {
+                                "Authorization": `Bearer ${token}`
+                            }
+                        }
+                    );
+
+                    if (!response.ok) {
+                        const data =
+                            await response.json();
+
+                        throw new Error(
+                            data.error ||
+                            "Failed to remove role"
+                        );
+                    }
+                }
+            }
+
+            messageElement.innerHTML = `
+                <div class="form-message success">
+                    Users assigned successfully.
+                </div>
+            `;
+        } catch (error) {
+            messageElement.innerHTML = `
+                <div class="form-message error">
+                    ${escapeHtml(error.message)}
+                </div>
+            `;
+        }
+    });
 }
 
 
@@ -1899,67 +2136,127 @@ async function deleteAccount() {
 
 
 async function showOverview() {
-    pageContentElement.innerHTML = `
-        <div class="welcome-section">
-            <p class="section-label">OVERVIEW</p>
-            <h2>Welcome back, <span>${escapeHtml(usernameElement.textContent)}</span></h2>
-            <p>Manage Dancing Stars from one place.</p>
-        </div>
+    const isDancer = currentUser.account_type === "DANCER";
 
-        <div class="stats-grid">
-            <div class="stat-card">
-                <span class="stat-label">DANCERS</span>
-                <strong class="stat-value" id="overviewDancerCount">—</strong>
-                <span class="stat-description">Active members</span>
+    if (isDancer) {
+        pageContentElement.innerHTML = `
+            <div class="welcome-section">
+                <p class="section-label">OVERVIEW</p>
+                <h2>Welcome back, <span>${escapeHtml(usernameElement.textContent)}</span></h2>
+                <p>Your Dancing Stars overview.</p>
             </div>
 
-            <div class="stat-card">
-                <span class="stat-label">REHEARSALS</span>
-                <strong class="stat-value" id="overviewRehearsalCount">—</strong>
-                <span class="stat-description">Upcoming rehearsals</span>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <span class="stat-label">ATTENDANCE</span>
+                    <strong class="stat-value" id="overviewAttendanceRate">—</strong>
+                    <span class="stat-description">Your attendance</span>
+                </div>
+
+                <div class="stat-card">
+                    <span class="stat-label">STREAK</span>
+                    <strong class="stat-value" id="overviewStreak">—</strong>
+                    <span class="stat-description">Current attendance streak</span>
+                </div>
+
+                <div class="stat-card">
+                    <span class="stat-label">ATTENDED</span>
+                    <strong class="stat-value" id="overviewAttended">—</strong>
+                    <span class="stat-description">Rehearsals attended</span>
+                </div>
+
+                <div class="stat-card">
+                    <span class="stat-label">UPCOMING</span>
+                    <strong class="stat-value" id="overviewRehearsalCount">—</strong>
+                    <span class="stat-description">Upcoming rehearsals</span>
+                </div>
             </div>
 
-            <div class="stat-card">
-                <span class="stat-label">ATTENDANCE</span>
-                <strong class="stat-value" id="overviewAttendanceRate">—</strong>
-                <span class="stat-description">Latest rehearsal</span>
-            </div>
+            <div class="dashboard-grid">
+                <div class="dashboard-card">
+                    <div class="card-header">
+                        <div>
+                            <p class="section-label">NEXT</p>
+                            <h3>Upcoming Rehearsals</h3>
+                        </div>
+                    </div>
 
-            <div class="stat-card">
-                <span class="stat-label">DANCES</span>
-                <strong class="stat-value" id="overviewDanceCount">—</strong>
-                <span class="stat-description">In the library</span>
-            </div>
-        </div>
-
-        <div class="dashboard-grid">
-            <div class="dashboard-card">
-                <div class="card-header">
-                    <div>
-                        <p class="section-label">NEXT</p>
-                        <h3>Upcoming Rehearsal</h3>
+                    <div id="overviewNextRehearsal" class="empty-state">
+                        Loading...
                     </div>
                 </div>
 
-                <div id="overviewNextRehearsal" class="empty-state">
-                    Loading...
+                <div class="dashboard-card">
+                    <div class="card-header">
+                        <div>
+                            <p class="section-label">ATTENDANCE</p>
+                            <h3>Your Progress</h3>
+                        </div>
+                    </div>
+
+                    <div id="overviewAttendanceInfo" class="empty-state">
+                        Loading...
+                    </div>
+                </div>
+            </div>
+        `;
+    } else {
+        pageContentElement.innerHTML = `
+            <div class="welcome-section">
+                <p class="section-label">OVERVIEW</p>
+                <h2>Welcome back, <span>${escapeHtml(usernameElement.textContent)}</span></h2>
+                <p>Manage Dancing Stars from one place.</p>
+            </div>
+
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <span class="stat-label">TOTAL MEMBERS</span>
+                    <strong class="stat-value" id="overviewMemberCount">—</strong>
+                    <span class="stat-description">Active dancers</span>
+                </div>
+
+                <div class="stat-card">
+                    <span class="stat-label">LATEST ATTENDANCE</span>
+                    <strong class="stat-value" id="overviewAttendanceRate">—</strong>
+                    <span class="stat-description">Latest completed rehearsal</span>
+                </div>
+
+                <div class="stat-card">
+                    <span class="stat-label">UPCOMING REHEARSALS</span>
+                    <strong class="stat-value" id="overviewRehearsalCount">—</strong>
+                    <span class="stat-description">Scheduled rehearsals</span>
                 </div>
             </div>
 
-            <div class="dashboard-card">
-                <div class="card-header">
-                    <div>
-                        <p class="section-label">RECENT</p>
-                        <h3>Recent Activity</h3>
+            <div class="dashboard-grid">
+                <div class="dashboard-card">
+                    <div class="card-header">
+                        <div>
+                            <p class="section-label">NEXT</p>
+                            <h3>Upcoming Rehearsal</h3>
+                        </div>
+                    </div>
+
+                    <div id="overviewNextRehearsal" class="empty-state">
+                        Loading...
                     </div>
                 </div>
 
-                <div class="empty-state">
-                    Activity history will appear here.
+                <div class="dashboard-card">
+                    <div class="card-header">
+                        <div>
+                            <p class="section-label">LATEST</p>
+                            <h3>Attendance</h3>
+                        </div>
+                    </div>
+
+                    <div id="overviewAttendanceInfo" class="empty-state">
+                        Loading...
+                    </div>
                 </div>
             </div>
-        </div>
-    `;
+        `;
+    }
 
     try {
         const response = await fetch(`${API_URL}/api/dashboard/overview`, {
@@ -1974,65 +2271,157 @@ async function showOverview() {
 
         const data = await response.json();
 
-        document.getElementById("overviewDancerCount").textContent =
-            data.dancers;
+        if (data.account_type === "DANCER") {
+            document.getElementById("overviewAttendanceRate").textContent =
+                data.attendance.rate === null
+                    ? "—"
+                    : `${data.attendance.rate}%`;
 
-        document.getElementById("overviewRehearsalCount").textContent =
-            data.upcoming_rehearsals;
+            document.getElementById("overviewStreak").textContent =
+                data.attendance.current_streak;
 
-        document.getElementById("overviewAttendanceRate").textContent =
-            data.attendance_rate === null
-                ? "—"
-                : `${data.attendance_rate}%`;
+            document.getElementById("overviewAttended").textContent =
+                data.attendance.total_attended;
 
-        document.getElementById("overviewDanceCount").textContent =
-            data.dances;
+            document.getElementById("overviewRehearsalCount").textContent =
+                data.upcoming_rehearsals.length;
+
+            const nextRehearsalElement =
+                document.getElementById("overviewNextRehearsal");
+
+            if (!data.upcoming_rehearsals.length) {
+                nextRehearsalElement.innerHTML = `
+                    <div class="empty-state">
+                        No upcoming rehearsals.
+                    </div>
+                `;
+            } else {
+                nextRehearsalElement.innerHTML =
+                    data.upcoming_rehearsals.map(rehearsal => `
+                        <div class="overview-rehearsal">
+                            <strong>${escapeHtml(rehearsal.title)}</strong>
+                            <span>${formatAttendanceDate(rehearsal.date)}</span>
+                            <span>
+                                ${rehearsal.start_time
+                                    ? formatAttendanceTime(rehearsal.start_time)
+                                    : ""}
+                                ${rehearsal.location
+                                    ? ` • ${escapeHtml(rehearsal.location)}`
+                                    : ""}
+                            </span>
+                        </div>
+                    `).join("");
+            }
+
+            document.getElementById("overviewAttendanceInfo").innerHTML = `
+                <div class="overview-rehearsal">
+                    <strong>${data.attendance.total_attended}</strong>
+                    <span>rehearsals attended</span>
+                    <span>${data.attendance.total_recorded} recorded rehearsals</span>
+                </div>
+            `;
+        } else {
+            document.getElementById("overviewMemberCount").textContent =
+                data.members;
+
+            document.getElementById("overviewAttendanceRate").textContent =
+                data.attendance_rate === null
+                    ? "—"
+                    : `${data.attendance_rate}%`;
+
+            document.getElementById("overviewRehearsalCount").textContent =
+                data.upcoming_rehearsals;
+
+            const nextRehearsalElement =
+                document.getElementById("overviewNextRehearsal");
+
+            if (!data.next_rehearsal) {
+                nextRehearsalElement.innerHTML = `
+                    <div class="empty-state">
+                        No upcoming rehearsal.
+                    </div>
+                `;
+            } else {
+                const rehearsal = data.next_rehearsal;
+
+                nextRehearsalElement.innerHTML = `
+                    <div class="overview-rehearsal">
+                        <strong>${escapeHtml(rehearsal.title)}</strong>
+                        <span>${formatAttendanceDate(rehearsal.date)}</span>
+                        <span>
+                            ${rehearsal.start_time
+                                ? formatAttendanceTime(rehearsal.start_time)
+                                : ""}
+                            ${rehearsal.location
+                                ? ` • ${escapeHtml(rehearsal.location)}`
+                                : ""}
+                        </span>
+                    </div>
+                `;
+            }
+
+            if (!data.latest_rehearsal) {
+                document.getElementById("overviewAttendanceInfo").innerHTML = `
+                    <div class="empty-state">
+                        No completed rehearsal yet.
+                    </div>
+                `;
+            } else {
+                document.getElementById("overviewAttendanceInfo").innerHTML = `
+                    <div class="overview-rehearsal">
+                        <strong>${escapeHtml(data.latest_rehearsal.title)}</strong>
+                        <span>
+                            ${formatAttendanceDate(data.latest_rehearsal.date)}
+                        </span>
+                        <span>
+                            Latest attendance: ${data.attendance_rate === null
+                                ? "—"
+                                : `${data.attendance_rate}%`}
+                        </span>
+                    </div>
+                `;
+            }
+        }
+    } catch (error) {
+        console.error(error);
+
+        const statIds = [
+            "overviewMemberCount",
+            "overviewAttendanceRate",
+            "overviewRehearsalCount",
+            "overviewStreak",
+            "overviewAttended"
+        ];
+
+        statIds.forEach(id => {
+            const element = document.getElementById(id);
+
+            if (element) {
+                element.textContent = "—";
+            }
+        });
 
         const nextRehearsalElement =
             document.getElementById("overviewNextRehearsal");
 
-        if (!data.next_rehearsal) {
+        if (nextRehearsalElement) {
             nextRehearsalElement.innerHTML = `
-                <div class="empty-state">
-                    No upcoming rehearsal.
+                <div class="form-message error">
+                    Unable to load dashboard information.
                 </div>
             `;
-            return;
         }
 
-        const rehearsal = data.next_rehearsal;
+        const attendanceInfoElement =
+            document.getElementById("overviewAttendanceInfo");
 
-        nextRehearsalElement.innerHTML = `
-            <div class="overview-rehearsal">
-                <strong>${escapeHtml(rehearsal.title)}</strong>
-
-                <span>
-                    ${formatAttendanceDate(rehearsal.date)}
-                </span>
-
-                <span>
-                    ${rehearsal.start_time
-                        ? formatAttendanceTime(rehearsal.start_time)
-                        : ""}
-                    ${rehearsal.location
-                        ? ` • ${escapeHtml(rehearsal.location)}`
-                        : ""}
-                </span>
-            </div>
-        `;
-    } catch (error) {
-        console.error(error);
-
-        document.getElementById("overviewDancerCount").textContent = "—";
-        document.getElementById("overviewRehearsalCount").textContent = "—";
-        document.getElementById("overviewAttendanceRate").textContent = "—";
-        document.getElementById("overviewDanceCount").textContent = "—";
-
-        document.getElementById("overviewNextRehearsal").innerHTML = `
-            <div class="form-message error">
-                Unable to load dashboard information.
-            </div>
-        `;
+        if (attendanceInfoElement) {
+            attendanceInfoElement.innerHTML = `
+                <div class="form-message error">
+                    Unable to load attendance information.
+                </div>
+            `;
+        }
     }
 }
 
