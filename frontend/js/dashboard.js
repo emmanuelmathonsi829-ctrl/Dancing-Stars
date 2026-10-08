@@ -488,42 +488,6 @@ async function deleteAccount() {
     const message =
         document.getElementById("deleteMessage");
 
-    try {
-
-        const response = await fetch(
-            `${API_URL}/api/auth/delete-account`,
-            {
-                method: "DELETE",
-                headers: {
-                    "Content-Type": "application/json",
-                    "Authorization": `Bearer ${token}`
-                },
-                body: JSON.stringify({
-                    password
-                })
-            }
-        );
-
-        const data =
-            await response.json();
-
-        if (!response.ok) {
-            message.textContent =
-                data.error ||
-                "Unable to delete account.";
-            return;
-        }
-
-        localStorage.removeItem("access_token");
-        localStorage.removeItem("user");
-
-        window.location.href = "login.html";
-
-    } catch (error) {
-
-        message.textContent =
-            "Unable to connect to the server.";
-    }
 }
 
 
