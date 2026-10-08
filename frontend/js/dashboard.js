@@ -163,6 +163,8 @@ function setupNavigationClicks() {
 }
 
 
+
+
 function loadPage(page) {
 
     switch (page) {
@@ -232,14 +234,295 @@ function loadPage(page) {
             break;
 
         case "settings":
-            showComingSoon(
-                "Settings",
-                "Account settings will appear here."
-            );
+            showSettings();
             break;
 
         default:
             showOverview();
+    }
+}
+
+function showSettings() {
+
+    pageContentElement.innerHTML = `
+
+        <div class="welcome-section">
+
+            <p class="section-label">
+                ACCOUNT
+            </p>
+
+            <h2>
+                Settings
+            </h2>
+
+            <p>
+                Manage your account and security.
+            </p>
+
+        </div>
+
+        <div class="dashboard-card settings-card">
+
+            <div class="card-header">
+
+                <div>
+                    <p class="section-label">
+                        SECURITY
+                    </p>
+
+                    <h3>
+                        Change Password
+                    </h3>
+                </div>
+
+            </div>
+
+            <form id="changePasswordForm">
+
+                <div class="form-group">
+
+                    <label for="currentPassword">
+                        Current Password
+                    </label>
+
+                    <input
+                        type="password"
+                        id="currentPassword"
+                        required
+                        autocomplete="current-password"
+                    >
+
+                </div>
+
+                <div class="form-group">
+
+                    <label for="newPassword">
+                        New Password
+                    </label>
+
+                    <input
+                        type="password"
+                        id="newPassword"
+                        required
+                        minlength="8"
+                        autocomplete="new-password"
+                    >
+
+                </div>
+
+                <div class="form-group">
+
+                    <label for="confirmPassword">
+                        Confirm New Password
+                    </label>
+
+                    <input
+                        type="password"
+                        id="confirmPassword"
+                        required
+                        minlength="8"
+                        autocomplete="new-password"
+                    >
+
+                </div>
+
+                <button
+                    type="submit"
+                    class="dashboard-action"
+                >
+                    Change Password
+                </button>
+
+                <p
+                    id="passwordMessage"
+                    class="form-message"
+                ></p>
+
+            </form>
+
+        </div>
+
+        <div class="dashboard-card settings-danger-card">
+
+            <div class="card-header">
+
+                <div>
+                    <p class="section-label">
+                        DANGER ZONE
+                    </p>
+
+                    <h3>
+                        Delete Account
+                    </h3>
+                </div>
+
+            </div>
+
+            <p>
+                Your account will be disabled and you will be logged out.
+                Your historical records will be preserved.
+            </p>
+
+            <button
+                type="button"
+                id="deleteAccountButton"
+                class="dashboard-danger"
+            >
+                Delete My Account
+            </button>
+
+            <p
+                id="deleteMessage"
+                class="form-message"
+            ></p>
+
+        </div>
+    `;
+
+    document
+        .getElementById("changePasswordForm")
+        .addEventListener(
+            "submit",
+            changePassword
+        );
+
+    document
+        .getElementById("deleteAccountButton")
+        .addEventListener(
+            "click",
+            deleteAccount
+        );
+}
+
+async function changePassword(event) {
+
+    event.preventDefault();
+
+    const currentPassword =
+        document.getElementById("currentPassword").value;
+
+    const newPassword =
+        document.getElementById("newPassword").value;
+
+    const confirmPassword =
+        document.getElementById("confirmPassword").value;
+
+    const message =
+        document.getElementById("passwordMessage");
+
+    if (newPassword.length < 8) {
+        message.textContent =
+            "New password must be at least 8 characters.";
+        return;
+    }
+
+    if (newPassword !== confirmPassword) {
+        message.textContent =
+            "New passwords do not match.";
+        return;
+    }
+
+    try {
+
+        const response = await fetch(
+            `${API_URL}/api/auth/change-password`,
+            {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    current_password: currentPassword,
+                    new_password: newPassword
+                })
+            }
+        );
+
+        const data =
+            await response.json();
+
+        if (!response.ok) {
+            message.textContent =
+                data.error ||
+                "Unable to change password.";
+            return;
+        }
+
+        message.textContent =
+            "Password changed successfully.";
+
+        document
+            .getElementById("changePasswordForm")
+            .reset();
+
+    } catch (error) {
+
+        message.textContent =
+            "Unable to connect to the server.";
+    }
+}
+
+
+async function deleteAccount() {
+
+    const confirmed =
+        window.confirm(
+            "Are you sure you want to delete your account? Your account will be disabled and you will be logged out."
+        );
+
+    if (!confirmed) {
+        return;
+    }
+
+    const password =
+        window.prompt(
+            "Enter your current password to confirm account deletion:"
+        );
+
+    if (!password) {
+        return;
+    }
+
+    const message =
+        document.getElementById("deleteMessage");
+
+    try {
+
+        const response = await fetch(
+            `${API_URL}/api/auth/delete-account`,
+            {
+                method: "DELETE",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    password
+                })
+            }
+        );
+
+        const data =
+            await response.json();
+
+        if (!response.ok) {
+            message.textContent =
+                data.error ||
+                "Unable to delete account.";
+            return;
+        }
+
+        localStorage.removeItem("access_token");
+        localStorage.removeItem("user");
+
+        window.location.href = "login.html";
+
+    } catch (error) {
+
+        message.textContent =
+            "Unable to connect to the server.";
     }
 }
 

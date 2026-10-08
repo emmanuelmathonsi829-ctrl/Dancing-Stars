@@ -168,3 +168,42 @@ def get_current_user():
         "permissions": sorted(permissions)
     }), 200
 
+
+@auth_bp.route("/delete-account", methods=["DELETE"])
+@jwt_required()
+def delete_account():
+    user_id = get_jwt_identity()
+
+    user = User.query.get(user_id)
+
+    if not user:
+        return jsonify({
+            "error": "User not found"
+        }), 404
+
+    if user.account_type == "SHEPHERD":
+        return jsonify({
+            "error": "The Shepherd account cannot be deleted."
+        }), 403
+
+    data = request.get_json() or {}
+
+    password = data.get("password")
+
+    if not password:
+        return jsonify({
+            "error": "Password is required"
+        }), 400
+
+    if not check_password(password, user.password_hash):
+        return jsonify({
+            "error": "Password is incorrect"
+        }), 401
+
+    user.status = "DISABLED"
+
+    db.session.commit()
+
+    return jsonify({
+        "message": "Account deleted successfully"
+    }), 200

@@ -195,3 +195,27 @@ def disable_dancer(dancer_id):
         "message": "Dancer disabled successfully"
     }), 200
 
+
+@dancers_bp.route("/<int:dancer_id>/reset-password", methods=["PATCH"])
+@permission_required("dancers.manage")
+def reset_dancer_password(dancer_id):
+
+    dancer = User.query.filter_by(
+        id=dancer_id,
+        account_type="DANCER"
+    ).first()
+
+    if not dancer:
+        return jsonify({
+            "error": "Dancer not found"
+        }), 404
+
+    dancer.password_hash = hash_password(dancer.username)
+    dancer.must_change_password = True
+
+    db.session.commit()
+
+    return jsonify({
+        "message": "Dancer password reset successfully"
+    }), 200
+
