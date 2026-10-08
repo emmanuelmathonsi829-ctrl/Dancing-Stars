@@ -106,32 +106,20 @@ function formatAccountType(accountType) {
 
 
 function setupNavigation(user) {
-
     const permissions = user.permissions || [];
-
     const isAdmin =
         user.account_type === "SHEPHERD" ||
         user.account_type === "ASSISTANT";
 
     document.querySelectorAll(".nav-item").forEach(navItem => {
-
         const page = navItem.dataset.page;
         const requiredPermission = pagePermissions[page];
 
-        if (isAdmin) {
+        if (isAdmin || !requiredPermission || permissions.includes(requiredPermission)) {
             navItem.style.display = "flex";
-            return;
+        } else {
+            navItem.style.display = "none";
         }
-
-        if (!requiredPermission) {
-            navItem.style.display = "flex";
-            return;
-        }
-
-        navItem.style.display =
-            permissions.includes(requiredPermission)
-                ? "flex"
-                : "none";
     });
 
     setupNavigationClicks();
