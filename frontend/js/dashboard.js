@@ -414,13 +414,23 @@ function renderRoles(roles) {
                 </div>
             </div>
 
-            <button
-                class="permission-button"
-                type="button"
-                onclick="manageRolePermissions(${role.id}, '${escapeHtml(role.name)}')"
-            >
-                Manage Permissions
-            </button>
+<div class="role-card-buttons">
+    <button
+        class="permission-button"
+        type="button"
+        onclick="manageRolePermissions(${role.id}, '${escapeHtml(role.name)}')"
+    >
+        Manage Permissions
+    </button>
+
+    <button
+        class="permission-button"
+        type="button"
+        onclick="manageRoleUsers(${role.id}, '${escapeHtml(role.name)}')"
+    >
+        Assign Users
+    </button>
+</div>
         </div>
     `).join("");
 }
@@ -808,6 +818,215 @@ function renderRolePermissions(role, permissions) {
             }
         });
 }
+
+
+
+async function manageRoleUsers(roleId, roleName) {
+    pageContentElement.innerHTML = `
+        <div class="page-header">
+            <div>
+                <p class="section-label">ROLES</p>
+                <h2>Assign Users</h2>
+                <p>Assign users to ${escapeHtml(roleName)}.</p>
+            </div>
+
+            <button
+                class="secondary-button"
+                type="button"
+                onclick="loadRoles()"
+            >
+                ← Back
+            </button>
+        </div>
+
+        <div id="roleUsersContainer">
+            <div class="empty-state">
+                Loading users...
+            </div>
+        </div>
+    `;
+
+    try {
+        const [usersResponse, roleUsersResponse] = await Promise.all([
+            fetch(`${API_URL}/api/dancers`, {
+                headers: {
+                    "Authorization": `Bearer ${token}`
+                }
+            }),
+            fetch(`${API_URL}/api/roles/${roleId}/users`, {
+                headers: {
+                    "Authorization": `Bearer ${token}`
+                }
+            })
+        ]);
+
+        if (!usersResponse.ok || !roleUsersResponse.ok) {
+            throw new Error("Failed to load users");
+        }
+
+        const usersData = await usersResponse.json();
+        const roleUsersData = await roleUsersResponse.json();
+
+        const assignedUserIds = new Set(
+            roleUsersData.users.map(user => user.id)
+        );
+
+        renderRoleUsers(
+            roleId,
+            roleName,
+            usersData.dancers,
+            assignedUserIds
+        );
+    } catch (error) {
+        document.getElementById("roleUsersContainer").innerHTML = `
+            <div class="form-message error">
+                ${escapeHtml(error.message)}
+            </div>
+        `;
+    }
+}
+
+function renderRoleUsers(roleId, roleName, users, assignedUserIds) {
+    document.getElementById("roleUsersContainer").innerHTML = `
+        <div class="form-card">
+            <form id="roleUsersForm">
+
+                <div class="role-users-list">
+                    ${
+                        users.length
+                        ? users.map(user => `
+                            <label class="role-user-option">
+                                <input
+                                    type="checkbox"
+                                    value="${user.id}"
+                                    ${assignedUserIds.has(user.id) ? "checked" : ""}
+                                >
+
+                                <span>
+                                    <strong>
+                                        ${escapeHtml(user.username)}
+                                    </strong>
+
+                                    <small>
+                                        ${escapeHtml(user.status)}
+                                    </small>
+                                </span>
+                            </label>
+                        `).join("")
+                        : `
+                            <div class="empty-state">
+                                No dancers found.
+                            </div>
+                        `
+                    }
+                </div>
+
+                <div id="roleUsersMessage"></div>
+
+                <button
+                    class="primary-button"
+                    type="submit"
+                >
+                    Save Assignments
+                </button>
+            </form>
+        </div>
+    `;
+
+    document
+        .getElementById("roleUsersForm")
+        .addEventListener("submit", async event => {
+            event.preventDefault();
+
+            const selectedIds = new Set(
+                Array.from(
+                    document.querySelectorAll(
+                        '#roleUsersForm input[type="checkbox"]:checked'
+                    )
+                ).map(input => Number(input.value))
+            );
+
+            const messageElement =
+                document.getElementById("roleUsersMessage");
+
+            try {
+                const currentResponse = await fetch(
+                    `${API_URL}/api/roles/${roleId}/users`,
+                    {
+                        headers: {
+                            "Authorization": `Bearer ${token}`
+                        }
+                    }
+                );
+
+                if (!currentResponse.ok) {
+                    throw new Error("Failed to load current assignments");
+                }
+
+                const currentData = await currentResponse.json();
+
+                const currentIds = new Set(
+                    currentData.users.map(user => user.id)
+                );
+
+                for (const userId of selectedIds) {
+                    if (!currentIds.has(userId)) {
+                        const response = await fetch(
+                            `${API_URL}/api/roles/${roleId}/users/${userId}`,
+                            {
+                                method: "POST",
+                                headers: {
+                                    "Authorization": `Bearer ${token}`
+                                }
+                            }
+                        );
+
+                        if (!response.ok && response.status !== 409) {
+                            const data = await response.json();
+                            throw new Error(
+                                data.error || "Failed to assign role"
+                            );
+                        }
+                    }
+                }
+
+                for (const userId of currentIds) {
+                    if (!selectedIds.has(userId)) {
+                        const response = await fetch(
+                            `${API_URL}/api/roles/${roleId}/users/${userId}`,
+                            {
+                                method: "DELETE",
+                                headers: {
+                                    "Authorization": `Bearer ${token}`
+                                }
+                            }
+                        );
+
+                        if (!response.ok) {
+                            const data = await response.json();
+                            throw new Error(
+                                data.error || "Failed to remove role"
+                            );
+                        }
+                    }
+                }
+
+                messageElement.innerHTML = `
+                    <div class="form-message success">
+                        Users assigned successfully.
+                    </div>
+                `;
+            } catch (error) {
+                messageElement.innerHTML = `
+                    <div class="form-message error">
+                        ${escapeHtml(error.message)}
+                    </div>
+                `;
+            }
+        });
+}
+
+
 
 
 
