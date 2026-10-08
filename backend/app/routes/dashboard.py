@@ -1,7 +1,8 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from flask import Blueprint, jsonify
 from flask_jwt_extended import get_jwt_identity, jwt_required
+from sqlalchemy import or_, and_
 
 from app.models import User, Rehearsal, Attendance, Dance
 
@@ -24,11 +25,37 @@ def get_overview():
     if user.status != "ACTIVE":
         return jsonify({"error": "Account is disabled"}), 403
 
-    today = datetime.utcnow().date()
+    current_datetime = datetime.utcnow() + timedelta(hours=2)
+    today = current_datetime.date()
+    current_time = current_datetime.time()
+
+    upcoming_filter = or_(
+        Rehearsal.rehearsal_date > today,
+        and_(
+            Rehearsal.rehearsal_date == today,
+            Rehearsal.end_time.isnot(None),
+            Rehearsal.end_time > current_time
+        ),
+        and_(
+            Rehearsal.rehearsal_date == today,
+            Rehearsal.end_time.is_(None),
+            Rehearsal.start_time.isnot(None),
+            Rehearsal.start_time > current_time
+        )
+    )
+
+    completed_filter = or_(
+        Rehearsal.rehearsal_date < today,
+        and_(
+            Rehearsal.rehearsal_date == today,
+            Rehearsal.end_time.isnot(None),
+            Rehearsal.end_time <= current_time
+        )
+    )
 
     if user.account_type == "DANCER":
         upcoming_rehearsals = Rehearsal.query.filter(
-            Rehearsal.rehearsal_date >= today
+            upcoming_filter
         ).order_by(
             Rehearsal.rehearsal_date.asc(),
             Rehearsal.start_time.asc()
@@ -40,7 +67,7 @@ def get_overview():
             Rehearsal,
             Attendance.rehearsal_id == Rehearsal.id
         ).filter(
-            Rehearsal.rehearsal_date < today
+            completed_filter
         ).order_by(
             Rehearsal.rehearsal_date.desc(),
             Rehearsal.start_time.desc()
@@ -126,16 +153,16 @@ def get_overview():
     ).count()
 
     upcoming_rehearsals = Rehearsal.query.filter(
-        Rehearsal.rehearsal_date >= today
+        upcoming_filter
     ).count()
 
     dance_count = Dance.query.count()
 
     latest_rehearsal = Rehearsal.query.filter(
-        Rehearsal.rehearsal_date < today
+        completed_filter
     ).order_by(
         Rehearsal.rehearsal_date.desc(),
-        Rehearsal.start_time.desc()
+        Rehearsal.end_time.desc()
     ).first()
 
     attendees = 0
@@ -153,7 +180,7 @@ def get_overview():
             )
 
     next_rehearsal = Rehearsal.query.filter(
-        Rehearsal.rehearsal_date >= today
+        upcoming_filter
     ).order_by(
         Rehearsal.rehearsal_date.asc(),
         Rehearsal.start_time.asc()
