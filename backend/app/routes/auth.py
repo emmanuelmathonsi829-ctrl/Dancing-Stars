@@ -161,7 +161,7 @@ def get_current_user():
         "id": user.id,
         "username": user.username,
         "account_type": user.account_type,
-        "profile_picture": user.profile_picture,
+        "profile_picture": bool(user.profile_picture),
         "must_change_password": user.must_change_password,
         "status": user.status,
         "roles": roles,
