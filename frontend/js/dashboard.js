@@ -7,35 +7,19 @@ if (!token) {
     window.location.href = "login.html";
 }
 
-
-/* =========================
-   DASHBOARD NAVIGATION
-========================= */
-
 const pagePermissions = {
     overview: null,
-
     dancers: "dancers.view",
-
     roles: "roles.view",
-
     attendance: "attendance.view",
-
     rehearsals: "rehearsals.view",
-
     uniform: "uniform.view",
-
     dance: "dance.view",
-
     music: "music.view",
-
     reports: "reports.view",
-
     activity: null,
-
     settings: null
 };
-
 
 const pageTitles = {
     overview: "Dashboard",
@@ -51,36 +35,17 @@ const pageTitles = {
     settings: "Settings"
 };
 
+const usernameElement = document.getElementById("username");
+const accountTypeElement = document.getElementById("accountType");
+const avatarElement = document.getElementById("userAvatar");
+const welcomeUsernameElement = document.getElementById("welcomeUsername");
+const pageTitleElement = document.getElementById("pageTitle");
+const pageContentElement = document.getElementById("pageContent");
+const logoutButton = document.getElementById("logoutButton");
 
-/* =========================
-   ELEMENTS
-========================= */
+let currentUser = null;
+let dancers = [];
 
-const usernameElement =
-    document.getElementById("username");
-
-const accountTypeElement =
-    document.getElementById("accountType");
-
-const avatarElement =
-    document.getElementById("userAvatar");
-
-const welcomeUsernameElement =
-    document.getElementById("welcomeUsername");
-
-const pageTitleElement =
-    document.getElementById("pageTitle");
-
-const pageContentElement =
-    document.getElementById("pageContent");
-
-const logoutButton =
-    document.getElementById("logoutButton");
-
-
-/* =========================
-   LOAD USER
-========================= */
 
 async function loadUser() {
 
@@ -89,78 +54,44 @@ async function loadUser() {
         const response = await fetch(
             `${API_URL}/api/auth/me`,
             {
-                method: "GET",
-
                 headers: {
                     "Authorization": `Bearer ${token}`
                 }
             }
         );
 
-
         if (!response.ok) {
-
             logout();
-
             return;
         }
 
-
         const user = await response.json();
 
+        currentUser = user;
 
-        /* -------------------------
-           USER INFORMATION
-        ------------------------- */
-
-        usernameElement.textContent =
-            user.username;
-
-        welcomeUsernameElement.textContent =
-            user.username;
+        usernameElement.textContent = user.username;
+        welcomeUsernameElement.textContent = user.username;
 
         accountTypeElement.textContent =
             formatAccountType(user.account_type);
 
-
         avatarElement.textContent =
-            user.username
-                .charAt(0)
-                .toUpperCase();
-
-
-        /* -------------------------
-           PERMISSIONS
-        ------------------------- */
+            user.username.charAt(0).toUpperCase();
 
         setupNavigation(user);
 
-
-        /* -------------------------
-           PASSWORD REQUIREMENT
-        ------------------------- */
-
         if (user.must_change_password) {
-
             showPasswordWarning();
         }
 
-
     } catch (error) {
 
-        console.error(
-            "Authentication error:",
-            error
-        );
+        console.error(error);
 
         logout();
     }
 }
 
-
-/* =========================
-   ACCOUNT TYPE
-========================= */
 
 function formatAccountType(accountType) {
 
@@ -174,272 +105,144 @@ function formatAccountType(accountType) {
 }
 
 
-/* =========================
-   NAVIGATION
-========================= */
-
 function setupNavigation(user) {
 
-    const permissions =
-        user.permissions || [];
-
+    const permissions = user.permissions || [];
 
     const isAdmin =
         user.account_type === "SHEPHERD" ||
         user.account_type === "ASSISTANT";
 
+    document.querySelectorAll(".nav-item").forEach(navItem => {
 
-    document
-        .querySelectorAll(".nav-item")
-        .forEach(navItem => {
+        const page = navItem.dataset.page;
+        const requiredPermission = pagePermissions[page];
 
-            const page =
-                navItem.dataset.page;
+        if (isAdmin) {
+            navItem.style.display = "flex";
+            return;
+        }
 
-            const requiredPermission =
-                pagePermissions[page];
+        if (!requiredPermission) {
+            navItem.style.display = "flex";
+            return;
+        }
 
-
-            /*
-             * Shepherd and Assistant
-             * can access everything.
-             */
-
-            if (isAdmin) {
-
-                navItem.style.display = "flex";
-
-                return;
-            }
-
-
-            /*
-             * Pages with no permission
-             * requirement are available
-             * to every authenticated user.
-             */
-
-            if (!requiredPermission) {
-
-                navItem.style.display = "flex";
-
-                return;
-            }
-
-
-            /*
-             * Show only if permission exists.
-             */
-
-            if (
-                permissions.includes(
-                    requiredPermission
-                )
-            ) {
-
-                navItem.style.display = "flex";
-
-            } else {
-
-                navItem.style.display = "none";
-            }
-
-        });
-
+        navItem.style.display =
+            permissions.includes(requiredPermission)
+                ? "flex"
+                : "none";
+    });
 
     setupNavigationClicks();
 }
 
 
-/* =========================
-   NAVIGATION CLICKS
-========================= */
-
 function setupNavigationClicks() {
 
-    document
-        .querySelectorAll(".nav-item")
-        .forEach(navItem => {
+    document.querySelectorAll(".nav-item").forEach(navItem => {
 
-            navItem.addEventListener(
-                "click",
-                function (event) {
+        navItem.addEventListener("click", function(event) {
 
-                    event.preventDefault();
+            event.preventDefault();
 
+            document.querySelectorAll(".nav-item").forEach(item => {
+                item.classList.remove("active");
+            });
 
-                    const page =
-                        this.dataset.page;
+            this.classList.add("active");
 
+            const page = this.dataset.page;
 
-                    /*
-                     * Remove active state.
-                     */
+            pageTitleElement.textContent =
+                pageTitles[page] || "Dashboard";
 
-                    document
-                        .querySelectorAll(".nav-item")
-                        .forEach(item => {
-
-                            item.classList.remove(
-                                "active"
-                            );
-
-                        });
-
-
-                    /*
-                     * Activate selected tab.
-                     */
-
-                    this.classList.add("active");
-
-
-                    /*
-                     * Update title.
-                     */
-
-                    pageTitleElement.textContent =
-                        pageTitles[page] ||
-                        "Dashboard";
-
-
-                    /*
-                     * Load page.
-                     */
-
-                    loadPage(page);
-                }
-            );
-
+            loadPage(page);
         });
+    });
 }
 
-
-/* =========================
-   PAGE LOADER
-========================= */
 
 function loadPage(page) {
 
     switch (page) {
 
         case "overview":
-
             showOverview();
-
             break;
-
 
         case "dancers":
-
-            showComingSoon(
-                "Dancers",
-                "Dancer management will appear here."
-            );
-
+            loadDancers();
             break;
 
-
         case "roles":
-
             showComingSoon(
                 "Roles",
                 "Role and permission management will appear here."
             );
-
             break;
 
-
         case "attendance":
-
             showComingSoon(
                 "Attendance",
                 "Attendance management will appear here."
             );
-
             break;
 
-
         case "rehearsals":
-
             showComingSoon(
                 "Rehearsals",
                 "Rehearsal management will appear here."
             );
-
             break;
 
-
         case "uniform":
-
             showComingSoon(
                 "Uniform",
                 "Uniform management will appear here."
             );
-
             break;
 
-
         case "dance":
-
             showComingSoon(
                 "Dance Knowledge",
                 "Dance knowledge management will appear here."
             );
-
             break;
 
-
         case "music":
-
             showComingSoon(
                 "Music",
                 "Music management will appear here."
             );
-
             break;
 
-
         case "reports":
-
             showComingSoon(
                 "Reports",
                 "Reports will appear here."
             );
-
             break;
 
-
         case "activity":
-
             showComingSoon(
                 "Activity Log",
                 "Activity history will appear here."
             );
-
             break;
 
-
         case "settings":
-
             showComingSoon(
                 "Settings",
                 "Account settings will appear here."
             );
-
             break;
 
-
         default:
-
             showOverview();
     }
 }
 
-
-/* =========================
-   OVERVIEW
-========================= */
 
 function showOverview() {
 
@@ -454,9 +257,7 @@ function showOverview() {
             <h2>
                 Welcome back,
                 <span>
-                    ${escapeHtml(
-                        usernameElement.textContent
-                    )}
+                    ${escapeHtml(usernameElement.textContent)}
                 </span>
             </h2>
 
@@ -466,78 +267,33 @@ function showOverview() {
 
         </div>
 
-
         <div class="stats-grid">
 
             <div class="stat-card">
-
-                <span class="stat-label">
-                    DANCERS
-                </span>
-
-                <strong class="stat-value">
-                    —
-                </strong>
-
-                <span class="stat-description">
-                    Active members
-                </span>
-
+                <span class="stat-label">DANCERS</span>
+                <strong class="stat-value">—</strong>
+                <span class="stat-description">Active members</span>
             </div>
 
-
             <div class="stat-card">
-
-                <span class="stat-label">
-                    REHEARSALS
-                </span>
-
-                <strong class="stat-value">
-                    —
-                </strong>
-
-                <span class="stat-description">
-                    Upcoming rehearsals
-                </span>
-
+                <span class="stat-label">REHEARSALS</span>
+                <strong class="stat-value">—</strong>
+                <span class="stat-description">Upcoming rehearsals</span>
             </div>
 
-
             <div class="stat-card">
-
-                <span class="stat-label">
-                    ATTENDANCE
-                </span>
-
-                <strong class="stat-value">
-                    —
-                </strong>
-
-                <span class="stat-description">
-                    Recent attendance
-                </span>
-
+                <span class="stat-label">ATTENDANCE</span>
+                <strong class="stat-value">—</strong>
+                <span class="stat-description">Recent attendance</span>
             </div>
 
-
             <div class="stat-card">
-
-                <span class="stat-label">
-                    DANCES
-                </span>
-
-                <strong class="stat-value">
-                    —
-                </strong>
-
-                <span class="stat-description">
-                    In the library
-                </span>
-
+                <span class="stat-label">DANCES</span>
+                <strong class="stat-value">—</strong>
+                <span class="stat-description">In the library</span>
             </div>
 
         </div>
-
 
         <div class="dashboard-grid">
 
@@ -545,66 +301,450 @@ function showOverview() {
 
                 <div class="card-header">
 
-                    <div>
+                    <p class="section-label">
+                        NEXT
+                    </p>
 
-                        <p class="section-label">
-                            NEXT
-                        </p>
-
-                        <h3>
-                            Upcoming Rehearsal
-                        </h3>
-
-                    </div>
+                    <h3>
+                        Upcoming Rehearsal
+                    </h3>
 
                 </div>
 
-
                 <div class="empty-state">
-
                     No upcoming rehearsal.
-
                 </div>
 
             </div>
-
 
             <div class="dashboard-card">
 
                 <div class="card-header">
 
-                    <div>
+                    <p class="section-label">
+                        RECENT
+                    </p>
 
-                        <p class="section-label">
-                            RECENT
-                        </p>
-
-                        <h3>
-                            Recent Activity
-                        </h3>
-
-                    </div>
+                    <h3>
+                        Recent Activity
+                    </h3>
 
                 </div>
 
-
                 <div class="empty-state">
-
                     No recent activity.
-
                 </div>
 
             </div>
 
         </div>
-
     `;
 }
 
 
-/* =========================
-   COMING SOON
-========================= */
+async function loadDancers() {
+
+    pageContentElement.innerHTML = `
+        <div class="welcome-section">
+            <p class="section-label">MEMBERS</p>
+            <h2>Dancers</h2>
+            <p>Manage the Dancing Stars members.</p>
+        </div>
+
+        <div class="dancers-toolbar">
+
+            <input
+                type="search"
+                id="dancerSearch"
+                placeholder="Search dancers..."
+            >
+
+            <button
+                type="button"
+                id="addDancerButton"
+                class="dashboard-action"
+            >
+                + Add Dancer
+            </button>
+
+        </div>
+
+        <div id="dancersList" class="dancers-list">
+            <div class="empty-state">
+                Loading dancers...
+            </div>
+        </div>
+    `;
+
+    const searchInput =
+        document.getElementById("dancerSearch");
+
+    searchInput.addEventListener(
+        "input",
+        renderDancers
+    );
+
+    const addButton =
+        document.getElementById("addDancerButton");
+
+    addButton.addEventListener(
+        "click",
+        showAddDancerForm
+    );
+
+    try {
+
+        const response = await fetch(
+            `${API_URL}/api/dancers`,
+            {
+                headers: {
+                    "Authorization": `Bearer ${token}`
+                }
+            }
+        );
+
+        if (!response.ok) {
+
+            const data = await response.json();
+
+            throw new Error(
+                data.error || "Unable to load dancers."
+            );
+        }
+
+        const data = await response.json();
+
+        dancers = data.dancers || [];
+
+        renderDancers();
+
+    } catch (error) {
+
+        document.getElementById(
+            "dancersList"
+        ).innerHTML = `
+            <div class="empty-state">
+                ${escapeHtml(error.message)}
+            </div>
+        `;
+    }
+}
+
+
+function renderDancers() {
+
+    const list =
+        document.getElementById("dancersList");
+
+    if (!list) {
+        return;
+    }
+
+    const searchInput =
+        document.getElementById("dancerSearch");
+
+    const search =
+        searchInput
+            ? searchInput.value.trim().toLowerCase()
+            : "";
+
+    const filtered =
+        dancers.filter(dancer =>
+            dancer.username
+                .toLowerCase()
+                .includes(search)
+        );
+
+    if (filtered.length === 0) {
+
+        list.innerHTML = `
+            <div class="empty-state">
+                No dancers found.
+            </div>
+        `;
+
+        return;
+    }
+
+    list.innerHTML = filtered.map(dancer => {
+
+        const initial =
+            dancer.username
+                .charAt(0)
+                .toUpperCase();
+
+        const status =
+            dancer.status === "ACTIVE"
+                ? "Active"
+                : "Disabled";
+
+        return `
+            <div class="dancer-card">
+
+                <div class="dancer-avatar">
+                    ${initial}
+                </div>
+
+                <div class="dancer-info">
+
+                    <strong>
+                        ${escapeHtml(dancer.username)}
+                    </strong>
+
+                    <span class="dancer-status ${dancer.status.toLowerCase()}">
+                        ${status}
+                    </span>
+
+                </div>
+
+                <button
+                    type="button"
+                    class="dancer-view-button"
+                    data-id="${dancer.id}"
+                >
+                    View
+                </button>
+
+            </div>
+        `;
+
+    }).join("");
+
+    document
+        .querySelectorAll(".dancer-view-button")
+        .forEach(button => {
+
+            button.addEventListener(
+                "click",
+                () => {
+
+                    const id =
+                        Number(button.dataset.id);
+
+                    showDancer(id);
+                }
+            );
+        });
+}
+
+
+function showDancer(id) {
+
+    const dancer =
+        dancers.find(
+            item => item.id === id
+        );
+
+    if (!dancer) {
+        return;
+    }
+
+    pageContentElement.innerHTML = `
+
+        <div class="welcome-section">
+
+            <p class="section-label">
+                DANCER
+            </p>
+
+            <h2>
+                ${escapeHtml(dancer.username)}
+            </h2>
+
+            <p>
+                Dancer profile
+            </p>
+
+        </div>
+
+        <div class="dashboard-card dancer-profile">
+
+            <div class="dancer-profile-avatar">
+                ${escapeHtml(
+                    dancer.username
+                        .charAt(0)
+                        .toUpperCase()
+                )}
+            </div>
+
+            <h3>
+                ${escapeHtml(dancer.username)}
+            </h3>
+
+            <p>
+                Status:
+                <strong>
+                    ${escapeHtml(dancer.status)}
+                </strong>
+            </p>
+
+            <button
+                type="button"
+                id="backToDancers"
+                class="dashboard-action"
+            >
+                ← Back to Dancers
+            </button>
+
+        </div>
+    `;
+
+    document
+        .getElementById("backToDancers")
+        .addEventListener(
+            "click",
+            loadDancers
+        );
+}
+
+
+function showAddDancerForm() {
+
+    pageContentElement.innerHTML = `
+
+        <div class="welcome-section">
+
+            <p class="section-label">
+                MEMBERS
+            </p>
+
+            <h2>
+                Add Dancer
+            </h2>
+
+            <p>
+                Create a new Dancing Stars account.
+            </p>
+
+        </div>
+
+        <div class="dashboard-card">
+
+            <form id="addDancerForm">
+
+                <div class="form-group">
+
+                    <label for="newDancerUsername">
+                        Username
+                    </label>
+
+                    <input
+                        type="text"
+                        id="newDancerUsername"
+                        required
+                        autocomplete="off"
+                        placeholder="Enter username"
+                    >
+
+                </div>
+
+                <div class="dancer-form-actions">
+
+                    <button
+                        type="submit"
+                        class="dashboard-action"
+                    >
+                        Create Dancer
+                    </button>
+
+                    <button
+                        type="button"
+                        id="cancelDancer"
+                        class="dashboard-secondary"
+                    >
+                        Cancel
+                    </button>
+
+                </div>
+
+                <p
+                    id="dancerFormMessage"
+                    class="form-message"
+                ></p>
+
+            </form>
+
+        </div>
+    `;
+
+    document
+        .getElementById("cancelDancer")
+        .addEventListener(
+            "click",
+            loadDancers
+        );
+
+    document
+        .getElementById("addDancerForm")
+        .addEventListener(
+            "submit",
+            createDancer
+        );
+}
+
+
+async function createDancer(event) {
+
+    event.preventDefault();
+
+    const username =
+        document
+            .getElementById(
+                "newDancerUsername"
+            )
+            .value
+            .trim();
+
+    const message =
+        document.getElementById(
+            "dancerFormMessage"
+        );
+
+    if (!username) {
+        message.textContent =
+            "Username is required.";
+        return;
+    }
+
+    try {
+
+        const response = await fetch(
+            `${API_URL}/api/dancers`,
+            {
+                method: "POST",
+
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${token}`
+                },
+
+                body: JSON.stringify({
+                    username
+                })
+            }
+        );
+
+        const data =
+            await response.json();
+
+        if (!response.ok) {
+
+            message.textContent =
+                data.error ||
+                "Unable to create dancer.";
+
+            return;
+        }
+
+        loadDancers();
+
+    } catch (error) {
+
+        message.textContent =
+            "Unable to connect to the server.";
+    }
+}
+
 
 function showComingSoon(title, message) {
 
@@ -626,66 +766,46 @@ function showComingSoon(title, message) {
 
         </div>
 
-
         <div class="dashboard-card">
 
             <div class="empty-state">
-
                 This section is being built.
-
             </div>
 
         </div>
-
     `;
 }
 
 
-/* =========================
-   PASSWORD WARNING
-========================= */
-
 function showPasswordWarning() {
+
+    if (document.getElementById("passwordWarning")) {
+        return;
+    }
 
     const warning =
         document.createElement("div");
 
+    warning.id = "passwordWarning";
 
     warning.textContent =
         "Please change your initial password in Settings.";
 
-
-    warning.style.padding =
-        "12px 16px";
-
-    warning.style.margin =
-        "15px 40px 0";
-
+    warning.style.padding = "12px 16px";
+    warning.style.margin = "15px 40px 0";
     warning.style.border =
         "1px solid rgba(255,255,255,0.12)";
-
-    warning.style.borderRadius =
-        "10px";
-
+    warning.style.borderRadius = "10px";
     warning.style.background =
         "rgba(255,255,255,0.04)";
-
-    warning.style.fontSize =
-        "13px";
-
-    warning.style.opacity =
-        "0.7";
-
+    warning.style.fontSize = "13px";
+    warning.style.opacity = "0.7";
 
     document
         .querySelector(".main-content")
         .prepend(warning);
 }
 
-
-/* =========================
-   LOGOUT
-========================= */
 
 function logout() {
 
@@ -702,16 +822,6 @@ function logout() {
 }
 
 
-logoutButton.addEventListener(
-    "click",
-    logout
-);
-
-
-/* =========================
-   HTML SAFETY
-========================= */
-
 function escapeHtml(value) {
 
     return String(value)
@@ -723,9 +833,11 @@ function escapeHtml(value) {
 }
 
 
-/* =========================
-   START
-========================= */
+logoutButton.addEventListener(
+    "click",
+    logout
+);
+
 
 loadUser();
 

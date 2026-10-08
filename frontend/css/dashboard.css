@@ -759,3 +759,247 @@ body {
     }
 }
 
+
+.dancers-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.dancers-toolbar input {
+    flex: 1;
+    min-width: 0;
+    padding: 13px 15px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 9px;
+    outline: none;
+    background: rgba(255, 255, 255, 0.04);
+    color: #ffffff;
+    font-size: 14px;
+}
+
+.dancers-toolbar input::placeholder {
+    color: rgba(255, 255, 255, 0.3);
+}
+
+.dancers-toolbar input:focus {
+    border-color: rgba(255, 255, 255, 0.3);
+}
+
+.dashboard-action {
+    min-height: 44px;
+    padding: 0 18px;
+    border: none;
+    border-radius: 9px;
+    background: #ffffff;
+    color: #0b0b0f;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: 0.2s ease;
+}
+
+.dashboard-action:hover {
+    transform: translateY(-1px);
+}
+
+.dashboard-secondary {
+    min-height: 44px;
+    padding: 0 18px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 9px;
+    background: transparent;
+    color: #ffffff;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.dancers-list {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+}
+
+.dancer-card {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 18px;
+    background: rgba(255, 255, 255, 0.035);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+}
+
+.dancer-avatar {
+    width: 46px;
+    height: 46px;
+    flex-shrink: 0;
+    border-radius: 50%;
+    background: #ffffff;
+    color: #0b0b0f;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    font-weight: 800;
+}
+
+.dancer-info {
+    min-width: 0;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.dancer-info strong {
+    font-size: 14px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.dancer-status {
+    width: fit-content;
+    padding: 4px 8px;
+    border-radius: 20px;
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.dancer-status.active {
+    background: rgba(255, 255, 255, 0.1);
+    color: #ffffff;
+}
+
+.dancer-status.disabled {
+    background: rgba(255, 255, 255, 0.04);
+    color: rgba(255, 255, 255, 0.35);
+}
+
+.dancer-view-button {
+    min-height: 38px;
+    padding: 0 13px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    background: transparent;
+    color: #ffffff;
+    cursor: pointer;
+    font-size: 12px;
+}
+
+.dancer-view-button:hover {
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.dancer-profile {
+    text-align: center;
+    max-width: 600px;
+}
+
+.dancer-profile-avatar {
+    width: 90px;
+    height: 90px;
+    margin: 0 auto 20px;
+    border-radius: 50%;
+    background: #ffffff;
+    color: #0b0b0f;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 30px;
+    font-weight: 800;
+}
+
+.dancer-profile h3 {
+    font-size: 22px;
+    margin-bottom: 10px;
+}
+
+.dancer-profile p {
+    font-size: 13px;
+    opacity: 0.5;
+    margin-bottom: 25px;
+}
+
+.dancer-form-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.form-group label {
+    font-size: 13px;
+    font-weight: 600;
+    opacity: 0.75;
+}
+
+.form-group input {
+    width: 100%;
+    padding: 14px 15px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 9px;
+    outline: none;
+    background: rgba(255, 255, 255, 0.04);
+    color: #ffffff;
+    font-size: 14px;
+}
+
+.form-group input:focus {
+    border-color: rgba(255, 255, 255, 0.3);
+}
+
+.form-message {
+    min-height: 20px;
+    margin-top: 12px;
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.6);
+}
+
+@media (max-width: 750px) {
+
+    .dancers-toolbar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .dancers-toolbar input {
+        width: 100%;
+    }
+
+    .dashboard-action {
+        width: 100%;
+    }
+
+    .dancers-list {
+        grid-template-columns: 1fr;
+    }
+
+    .dancer-card {
+        padding: 15px;
+    }
+
+    .dancer-view-button {
+        min-height: 40px;
+    }
+
+    .dancer-form-actions {
+        flex-direction: column;
+    }
+
+    .dashboard-secondary {
+        width: 100%;
+    }
+}
+
