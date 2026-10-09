@@ -156,3 +156,91 @@ def get_profile_picture(user_id):
         BytesIO(user.profile_picture),
         mimetype="image/jpeg"
     )
+
+from datetime import date
+
+
+@profile_bp.route("/birthday", methods=["PUT"])
+@jwt_required()
+def save_birthday():
+    user = get_current_user()
+
+    if not user:
+        return jsonify({
+            "error": "Account not found or disabled"
+        }), 403
+
+    data = request.get_json(silent=True) or {}
+
+    try:
+        day = int(data.get("day"))
+        month = int(data.get("month"))
+        date(2000, month, day)
+    except (TypeError, ValueError):
+        return jsonify({
+            "error": "Please provide a valid birthday day and month"
+        }), 400
+
+    user.birthday_day = day
+    user.birthday_month = month
+
+    db.session.commit()
+
+    return jsonify({
+        "message": "Birthday saved successfully",
+        "birthday_day": user.birthday_day,
+        "birthday_month": user.birthday_month
+    }), 200
+
+
+@profile_bp.route("/birthdays", methods=["GET"])
+@jwt_required()
+def get_birthdays():
+    from datetime import date
+
+    current_user = get_current_user()
+
+    if not current_user:
+        return jsonify({
+            "error": "Account not found or disabled"
+        }), 403
+
+    today = date.today()
+    users = User.query.filter(
+        User.status == "ACTIVE",
+        User.birthday_day.isnot(None),
+        User.birthday_month.isnot(None)
+    ).all()
+
+    birthdays = []
+
+    for user in users:
+        try:
+            birthday_this_year = date(
+                today.year,
+                user.birthday_month,
+                user.birthday_day
+            )
+        except ValueError:
+            continue
+
+        days_until = (birthday_this_year - today).days
+
+        if days_until < 0:
+            days_until += 366 if date(today.year, 12, 31).timetuple().tm_yday == 366 else 365
+
+        birthdays.append({
+            "id": user.id,
+            "username": user.username,
+            "birthday_day": user.birthday_day,
+            "birthday_month": user.birthday_month,
+            "days_until": days_until,
+            "has_profile_picture": user.profile_picture is not None
+        })
+
+    birthdays.sort(key=lambda birthday: birthday["days_until"])
+
+    return jsonify({
+        "birthdays": birthdays
+    }), 200
+

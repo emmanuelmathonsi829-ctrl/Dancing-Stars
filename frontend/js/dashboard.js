@@ -17,9 +17,12 @@ const pagePermissions = {
     dance: "dance.view",
     music: "music.view",
     reports: "reports.view",
+    birthdays: null,
     activity: null,
     settings: null
 };
+
+
 
 const pageTitles = {
     overview: "Dashboard",
@@ -31,9 +34,12 @@ const pageTitles = {
     dance: "Dance Knowledge",
     music: "Music",
     reports: "Reports",
+    birthdays: "Birthdays",
     activity: "Activity Log",
     settings: "Settings"
 };
+
+
 
 const usernameElement = document.getElementById("username");
 const accountTypeElement = document.getElementById("accountType");
@@ -151,11 +157,16 @@ async function loadUser() {
 
         await loadUserProfilePicture();
 
+
         if (user.must_change_password) {
             showPasswordWarning();
         }
 
         showOverview();
+
+        await checkAndShowBirthdayPopup();
+
+
     } catch (error) {
         console.error(error);
         logout();
@@ -217,6 +228,7 @@ function setupNavigationClicks() {
     });
 }
 
+
 function loadPage(page) {
     switch (page) {
         case "overview":
@@ -267,6 +279,10 @@ function loadPage(page) {
             );
             break;
 
+        case "birthdays":
+            loadBirthdays();
+            break;
+
         case "activity":
             showComingSoon(
                 "Activity Log",
@@ -282,6 +298,8 @@ function loadPage(page) {
             showOverview();
     }
 }
+
+
 
 function setupProfilePicture() {
     if (!profilePictureModal) {
@@ -4202,6 +4220,161 @@ async function loadDancers() {
     }
 }
 
+async function loadBirthdays() {
+    pageContentElement.innerHTML = `
+        <div class="welcome-section">
+            <p class="section-label">CELEBRATIONS</p>
+            <h2>◼️ Birthdays</h2>
+            <p>Celebrate our Dancing Stars family!</p>
+        </div>
+
+        <div id="birthdaysList">
+            <div class="empty-state">
+                Loading birthdays...
+            </div>
+        </div>
+    `;
+
+    const birthdaysList =
+        document.getElementById("birthdaysList");
+
+    try {
+        const response = await fetch(
+            `${API_URL}/api/profile/birthdays`,
+            {
+                headers: {
+                    "Authorization": `Bearer ${token}`
+                }
+            }
+        );
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(
+                data.error || "Unable to load birthdays."
+            );
+        }
+
+        const birthdays = data.birthdays || [];
+
+        if (birthdays.length === 0) {
+            birthdaysList.innerHTML = `
+                <div class="empty-state">
+                    🎂 No birthdays have been added yet.
+                </div>
+            `;
+            return;
+        }
+
+        birthdays.sort(
+            (a, b) => a.days_until - b.days_until
+        );
+
+        birthdaysList.innerHTML = `
+            <div class="birthdays-list">
+                ${birthdays.map(birthday => {
+                    const birthdayDate = new Date(
+                        2000,
+                        birthday.birthday_month - 1,
+                        birthday.birthday_day
+                    );
+
+                    const formattedDate =
+                        birthdayDate.toLocaleDateString(
+                            "en-ZA",
+                            {
+                                day: "numeric",
+                                month: "long"
+                            }
+                        );
+
+                    let countdown;
+
+                    if (birthday.days_until === 0) {
+                        countdown = "🎉 Today is their birthday!";
+                    } else if (birthday.days_until === 1) {
+                        countdown = "🎈 Birthday tomorrow!";
+                    } else if (birthday.days_until < 0) {
+                        countdown = "Birthday passed";
+                    } else {
+                        countdown =
+                            `In ${birthday.days_until} days`;
+                    }
+
+                    return `
+                        <div class="birthday-card">
+                            <div
+                                class="birthday-avatar"
+                                id="birthday-avatar-${birthday.id}"
+                            >
+                                ${escapeHtml(
+                                    birthday.username
+                                        .charAt(0)
+                                        .toUpperCase()
+                                )}
+                            </div>
+
+                            <div class="birthday-details">
+                                <h3>
+                                    ${escapeHtml(
+                                        birthday.username
+                                    )}
+                                </h3>
+
+                                <p>${formattedDate}</p>
+
+                                <span>
+                                    ${escapeHtml(countdown)}
+                                </span>
+                            </div>
+
+                            <div class="birthday-icon">
+                                🎂
+                            </div>
+                        </div>
+                    `;
+                }).join("")}
+            </div>
+        `;
+
+        for (const birthday of birthdays) {
+            if (!birthday.has_profile_picture) {
+                continue;
+            }
+
+            try {
+                const imageUrl = await fetchProtectedImage(
+                    `${API_URL}/api/profile/picture/${birthday.id}`
+                );
+
+                const avatar = document.getElementById(
+                    `birthday-avatar-${birthday.id}`
+                );
+
+                if (avatar) {
+                    const image = document.createElement("img");
+
+                    image.src = imageUrl;
+                    image.alt =
+                        `${birthday.username}'s profile picture`;
+
+                    avatar.innerHTML = "";
+                    avatar.appendChild(image);
+                }
+            } catch (error) {
+                // Keep the initials if the picture cannot be loaded.
+            }
+        }
+    } catch (error) {
+        birthdaysList.innerHTML = `
+            <div class="empty-state">
+                ${escapeHtml(error.message)}
+            </div>
+        `;
+    }
+}
+
 function renderDancers() {
     const list =
         document.getElementById(
@@ -4906,6 +5079,196 @@ function escapeHtml(value) {
             "'",
             "&#039;"
         );
+}
+
+async function checkAndShowBirthdayPopup() {
+    if (!currentUser) {
+        return;
+    }
+
+    try {
+        const response = await fetch(
+            `${API_URL}/api/profile/birthdays`,
+            {
+                headers: {
+                    "Authorization": `Bearer ${token}`
+                }
+            }
+        );
+
+        if (!response.ok) {
+            return;
+        }
+
+        const data = await response.json();
+        const birthdays = data.birthdays || [];
+
+        const hasBirthday = birthdays.some(
+            birthday => String(birthday.id) === String(currentUser.id)
+        );
+
+        if (hasBirthday) {
+            return;
+        }
+
+        if (document.getElementById("birthdayPopup")) {
+            return;
+        }
+
+        const overlay = document.createElement("div");
+
+        overlay.id = "birthdayPopup";
+        overlay.className = "birthday-popup-overlay";
+
+        overlay.innerHTML = `
+            <div
+                class="birthday-popup"
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="birthdayPopupTitle"
+            >
+                <div class="birthday-popup-icon">🎂</div>
+
+                <h2 id="birthdayPopupTitle">
+                    Add your birthday
+                </h2>
+
+                <p>
+                    Let Dancing Stars celebrate your special day with you.
+                    We only need the day and month.
+                </p>
+
+                <form id="birthdayForm">
+                    <div class="birthday-inputs">
+                        <label>
+                            Day
+                            <input
+                                type="number"
+                                id="birthdayDay"
+                                min="1"
+                                max="31"
+                                placeholder="Day"
+                                required
+                            >
+                        </label>
+
+                        <label>
+                            Month
+                            <select id="birthdayMonth" required>
+                                <option value="">Select month</option>
+                                <option value="1">January</option>
+                                <option value="2">February</option>
+                                <option value="3">March</option>
+                                <option value="4">April</option>
+                                <option value="5">May</option>
+                                <option value="6">June</option>
+                                <option value="7">July</option>
+                                <option value="8">August</option>
+                                <option value="9">September</option>
+                                <option value="10">October</option>
+                                <option value="11">November</option>
+                                <option value="12">December</option>
+                            </select>
+                        </label>
+                    </div>
+
+                    <p
+                        id="birthdayError"
+                        class="birthday-error"
+                        role="alert"
+                    ></p>
+
+                    <div class="birthday-popup-actions">
+                        <button
+                            type="button"
+                            id="skipBirthdayButton"
+                            class="birthday-skip-button"
+                        >
+                            Skip
+                        </button>
+
+                        <button
+                            type="submit"
+                            id="saveBirthdayButton"
+                            class="birthday-save-button"
+                        >
+                            Save Birthday
+                        </button>
+                    </div>
+                </form>
+            </div>
+        `;
+
+        document.body.appendChild(overlay);
+
+        const form = document.getElementById("birthdayForm");
+        const errorElement = document.getElementById("birthdayError");
+        const saveButton = document.getElementById("saveBirthdayButton");
+        const skipButton = document.getElementById("skipBirthdayButton");
+
+        skipButton.addEventListener("click", () => {
+            overlay.remove();
+        });
+
+        form.addEventListener("submit", async event => {
+            event.preventDefault();
+
+            errorElement.textContent = "";
+
+            const day = Number(
+                document.getElementById("birthdayDay").value
+            );
+
+            const month = Number(
+                document.getElementById("birthdayMonth").value
+            );
+
+            if (!day || !month) {
+                errorElement.textContent =
+                    "Please select your birthday day and month.";
+                return;
+            }
+
+            saveButton.disabled = true;
+            saveButton.textContent = "Saving...";
+
+            try {
+                const saveResponse = await fetch(
+                    `${API_URL}/api/profile/birthday`,
+                    {
+                        method: "PUT",
+                        headers: {
+                            "Authorization": `Bearer ${token}`,
+                            "Content-Type": "application/json"
+                        },
+                        body: JSON.stringify({
+                            day: day,
+                            month: month
+                        })
+                    }
+                );
+
+                const result = await saveResponse.json();
+
+                if (!saveResponse.ok) {
+                    throw new Error(
+                        result.error || "Unable to save your birthday."
+                    );
+                }
+
+                overlay.remove();
+            } catch (error) {
+                errorElement.textContent = error.message;
+                saveButton.disabled = false;
+                saveButton.textContent = "Save Birthday";
+            }
+        });
+
+        document.getElementById("birthdayDay").focus();
+
+    } catch (error) {
+        console.error("Unable to check birthday:", error);
+    }
 }
 
 logoutButton.addEventListener(
