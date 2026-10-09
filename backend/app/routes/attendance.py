@@ -124,9 +124,15 @@ def mark_attendance(rehearsal_id, dancer_id):
             "error": "Rehearsal not found"
         }), 404
 
-    dancer = User.query.filter_by(
-        id=dancer_id,
-        account_type="DANCER"
+    dancer = User.query.filter(
+        User.id == dancer_id,
+        db.or_(
+            User.account_type == "DANCER",
+            db.and_(
+                User.account_type == "SHEPHERD",
+                User.username.ilike("shepherd")
+            )
+        )
     ).first()
 
     if not dancer:
