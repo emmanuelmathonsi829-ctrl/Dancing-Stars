@@ -57,9 +57,15 @@ def get_attendance(rehearsal_id):
             "error": "Rehearsal not found"
         }), 404
 
-    dancers = User.query.filter_by(
-        account_type="DANCER",
-        status="ACTIVE"
+    dancers = User.query.filter(
+        User.status == "ACTIVE",
+        db.or_(
+            User.account_type == "DANCER",
+            db.and_(
+                User.account_type == "SHEPHERD",
+                User.username.ilike("shepherd")
+            )
+        )
     ).order_by(
         User.username.asc()
     ).all()
