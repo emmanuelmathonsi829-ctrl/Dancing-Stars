@@ -221,7 +221,12 @@ class Music(db.Model):
 
     file_path = db.Column(
         db.String(500),
-        nullable=False
+        nullable=True
+    )
+
+    file_data = db.Column(
+        db.LargeBinary,
+        nullable=True
     )
 
     uploaded_by = db.Column(

@@ -27,6 +27,7 @@ from .routes.dashboard import dashboard_bp
 from .routes.rehearsals import rehearsals_bp
 from .routes.roles import roles_bp
 from app.routes.profile import profile_bp
+from .routes.music import music_bp
 
 
 
@@ -57,9 +58,32 @@ def create_app():
     app.register_blueprint(rehearsals_bp)
     app.register_blueprint(roles_bp)
     app.register_blueprint(profile_bp)
+    app.register_blueprint(music_bp)
+
 
     with app.app_context():
         db.create_all()
+
+        columns = {
+            column["name"]
+            for column in db.inspect(db.engine).get_columns("music")
+        }
+
+        if "file_data" not in columns:
+            column_type = (
+                "BYTEA"
+                if db.engine.dialect.name == "postgresql"
+                else "BLOB"
+            )
+
+            with db.engine.begin() as connection:
+                connection.execute(
+                    db.text(
+                        f"ALTER TABLE music ADD COLUMN file_data {column_type}"
+                    )
+                )
+
+
 
     return app
 

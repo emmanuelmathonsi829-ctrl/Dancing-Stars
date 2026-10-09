@@ -15,7 +15,7 @@ const pagePermissions = {
     rehearsals: "rehearsals.view",
     uniform: "uniform.view",
     dance: "dance.view",
-    music: "music.view",
+    music: null,
     reports: "reports.view",
     birthdays: null,
     activity: null,
@@ -30,9 +30,9 @@ const pageTitles = {
     roles: "Roles",
     attendance: "Attendance",
     rehearsals: "Rehearsals",
+    music: "Music",
     uniform: "Uniform",
     dance: "Dance Knowledge",
-    music: "Music",
     reports: "Reports",
     birthdays: "Birthdays",
     activity: "Activity Log",
@@ -251,6 +251,10 @@ function loadPage(page) {
             loadRehearsals();
             break;
 
+        case "music":
+            loadMusic();
+            break;
+
         case "uniform":
             showComingSoon(
                 "Uniform",
@@ -265,12 +269,7 @@ function loadPage(page) {
             );
             break;
 
-        case "music":
-            showComingSoon(
-                "Music",
-                "Music management will appear here."
-            );
-            break;
+
 
         case "reports":
             showComingSoon(
@@ -4218,6 +4217,268 @@ async function loadDancers() {
             </div>
         `;
     }
+}
+
+async function loadMusic() {
+    pageContentElement.innerHTML = `
+        <div class="welcome-section">
+            <p class="section-label">DANCING STARS</p>
+            <h2>🎵 Music Library</h2>
+            <p>Listen to music and get ready to dance!</p>
+        </div>
+
+        <div class="music-upload-section">
+            <h3>Upload Music</h3>
+
+            <form id="musicUploadForm">
+                <div class="music-form-grid">
+                    <label>
+                        Song title
+                        <input
+                            type="text"
+                            id="musicTitle"
+                            maxlength="150"
+                            placeholder="Enter song title"
+                            required
+                        >
+                    </label>
+
+                    <label>
+                        Artist
+                        <input
+                            type="text"
+                            id="musicArtist"
+                            maxlength="150"
+                            placeholder="Enter artist name"
+                        >
+                    </label>
+
+                    <label class="music-file-label">
+                        Choose audio file
+                        <input
+                            type="file"
+                            id="musicFile"
+                            accept=".mp3,.wav,.ogg,.m4a,.aac,.flac,audio/*"
+                            required
+                        >
+                    </label>
+                </div>
+
+                <button type="submit" id="uploadMusicButton">
+                    Upload Song
+                </button>
+
+                <p id="musicUploadMessage" role="status"></p>
+            </form>
+        </div>
+
+        <div class="music-library-section">
+            <div class="music-library-heading">
+                <h3>Available Songs</h3>
+                <button type="button" id="refreshMusicButton">
+                    ↻ Refresh
+                </button>
+            </div>
+
+            <div id="musicList">
+                <div class="empty-state">
+                    Loading music...
+                </div>
+            </div>
+        </div>
+    `;
+
+    const musicList = document.getElementById("musicList");
+    const uploadForm = document.getElementById("musicUploadForm");
+    const uploadButton = document.getElementById("uploadMusicButton");
+    const uploadMessage = document.getElementById("musicUploadMessage");
+
+    async function refreshMusicList() {
+        musicList.innerHTML = `
+            <div class="empty-state">Loading music...</div>
+        `;
+
+        try {
+            const response = await fetch(`${API_URL}/api/music`, {
+                headers: {
+                    Authorization: `Bearer ${token}`
+                }
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.error || "Unable to load music.");
+            }
+
+            const songs = data.music || [];
+
+            if (songs.length === 0) {
+                musicList.innerHTML = `
+                    <div class="empty-state">
+                        🎵 No songs have been uploaded yet.
+                    </div>
+                `;
+                return;
+            }
+
+            musicList.innerHTML = `
+                <div class="music-list">
+                    ${songs.map(song => `
+                        <div class="music-card">
+                            <div class="music-card-icon">♫</div>
+
+                            <div class="music-card-details">
+                                <h4>${escapeHtml(song.title)}</h4>
+                                <p>${escapeHtml(song.artist || "Unknown artist")}</p>
+                                <small>
+                                    Uploaded by ${escapeHtml(song.uploaded_by || "Unknown")}
+                                </small>
+                            </div>
+
+                            <button
+                                type="button"
+                                class="music-play-button"
+                                data-music-id="${song.id}"
+                            >
+                                ▶ Play
+                            </button>
+                        </div>
+                    `).join("")}
+                </div>
+
+                <div id="musicPlayerContainer"></div>
+            `;
+
+            musicList.querySelectorAll(".music-play-button").forEach(button => {
+                button.addEventListener("click", async () => {
+                    const song = songs.find(
+                        item => String(item.id) === button.dataset.musicId
+                    );
+
+                    if (!song) {
+                        return;
+                    }
+
+                    const container = document.getElementById("musicPlayerContainer");
+
+                    button.disabled = true;
+                    button.textContent = "Loading...";
+
+                    try {
+                        const audioResponse = await fetch(
+                            `${API_URL}/api/music/${song.id}/play`,
+                            {
+                                headers: {
+                                    Authorization: `Bearer ${token}`
+                                }
+                            }
+                        );
+
+                        if (!audioResponse.ok) {
+                            const errorData = await audioResponse.json();
+                            throw new Error(
+                                errorData.error || "Unable to play this song."
+                            );
+                        }
+
+                        const audioBlob = await audioResponse.blob();
+                        const audioUrl = URL.createObjectURL(audioBlob);
+
+                        if (container.dataset.audioUrl) {
+                            URL.revokeObjectURL(container.dataset.audioUrl);
+                        }
+
+                        container.dataset.audioUrl = audioUrl;
+
+                        container.innerHTML = `
+                            <div class="music-player">
+                                <h3>${escapeHtml(song.title)}</h3>
+                                <audio controls autoplay>
+                                    Your browser does not support audio playback.
+                                </audio>
+                            </div>
+                        `;
+
+                        container.querySelector("audio").src = audioUrl;
+                    } catch (error) {
+                        uploadMessage.textContent = error.message;
+                    } finally {
+                        button.disabled = false;
+                        button.textContent = "▶ Play";
+                    }
+                });
+            });
+        } catch (error) {
+            musicList.innerHTML = `
+                <div class="empty-state">
+                    ${escapeHtml(error.message)}
+                </div>
+            `;
+        }
+    }
+
+    uploadForm.addEventListener("submit", async event => {
+        event.preventDefault();
+
+        uploadMessage.textContent = "";
+
+        const title = document.getElementById("musicTitle").value.trim();
+        const artist = document.getElementById("musicArtist").value.trim();
+        const file = document.getElementById("musicFile").files[0];
+
+        if (!file) {
+            uploadMessage.textContent = "Please choose an audio file.";
+            return;
+        }
+
+        if (file.size > 25 * 1024 * 1024) {
+            uploadMessage.textContent = "The audio file must be 25 MB or smaller.";
+            return;
+        }
+
+        const formData = new FormData();
+
+        formData.append("title", title);
+        formData.append("artist", artist);
+        formData.append("file", file);
+
+        uploadButton.disabled = true;
+        uploadButton.textContent = "Uploading...";
+
+        try {
+            const response = await fetch(`${API_URL}/api/music/upload`, {
+                method: "POST",
+                headers: {
+                    Authorization: `Bearer ${token}`
+                },
+                body: formData
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.error || "Unable to upload music.");
+            }
+
+            uploadMessage.textContent = "🎉 Song uploaded successfully!";
+            uploadForm.reset();
+
+            await refreshMusicList();
+        } catch (error) {
+            uploadMessage.textContent = error.message;
+        } finally {
+            uploadButton.disabled = false;
+            uploadButton.textContent = "Upload Song";
+        }
+    });
+
+    document.getElementById("refreshMusicButton").addEventListener(
+        "click",
+        refreshMusicList
+    );
+
+    await refreshMusicList();
 }
 
 async function loadBirthdays() {
