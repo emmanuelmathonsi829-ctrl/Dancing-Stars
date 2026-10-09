@@ -1685,7 +1685,7 @@ body {
 .music-upload-section h3,
 .music-library-section h3 {
     margin: 0 0 20px;
-    color: #29213d;
+    color: #17141c;
     font-size: 20px;
 }
 
@@ -1699,7 +1699,7 @@ body {
     display: flex;
     flex-direction: column;
     gap: 9px;
-    color: #393147;
+    color: #16141a;
     font-size: 14px;
     font-weight: 600;
 }
@@ -1713,14 +1713,14 @@ body {
     border: 1px solid #ded9e8;
     border-radius: 10px;
     background: #ffffff;
-    color: #29213d;
+    color: #17151c;
     font: inherit;
 }
 
 .music-form-grid input:focus {
     outline: 2px solid #a783e8;
     outline-offset: 2px;
-    border-color: #8151c5;
+    border-color: #1b191f;
 }
 
 .music-file-label {
@@ -1742,12 +1742,12 @@ body {
 
 #uploadMusicButton {
     margin-top: 20px;
-    background: #7041b8;
+    background: #1a171e;
     color: #ffffff;
 }
 
 #uploadMusicButton:hover {
-    background: #5d329e;
+    background: #1f1c24;
 }
 
 #uploadMusicButton:disabled,
@@ -1758,7 +1758,7 @@ body {
 
 #musicUploadMessage {
     margin: 14px 0 0;
-    color: #6534a5;
+    color: #1e1b23;
     font-size: 14px;
     overflow-wrap: anywhere;
 }
@@ -1815,7 +1815,7 @@ body {
     height: 52px;
     border-radius: 14px;
     background: #f3eaff;
-    color: #7041b8;
+    color: #1e1a24;
     font-size: 28px;
 }
 
@@ -1826,7 +1826,7 @@ body {
 
 .music-card-details h4 {
     margin: 0 0 6px;
-    color: #29213d;
+    color: #110f15;
     font-size: 16px;
     overflow-wrap: anywhere;
 }
@@ -1846,12 +1846,12 @@ body {
 
 .music-play-button {
     flex-shrink: 0;
-    background: #7041b8;
+    background: #15121a;
     color: #ffffff;
 }
 
 .music-play-button:hover {
-    background: #5d329e;
+    background: #121015;
 }
 
 .music-player {
@@ -1911,7 +1911,7 @@ body {
 .music-upload-section,
 .music-library-section {
     background: #17151f;
-    border: 1px solid #302a3d;
+    border: 1px solid #342d41;
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
 }
 
@@ -1926,7 +1926,7 @@ body {
 }
 
 .music-form-grid input {
-    background: #211d2b;
+    background: #18161e;
     color: #ffffff;
     border-color: #40364f;
 }
@@ -1948,17 +1948,17 @@ body {
 
 #uploadMusicButton:hover,
 .music-play-button:hover {
-    background: #a276f5;
+    background: #120f17;
 }
 
 #refreshMusicButton {
-    background: #302540;
+    background: #1e1a24;
     color: #d8baff;
     border: 1px solid #49365f;
 }
 
 #refreshMusicButton:hover {
-    background: #403051;
+    background: #100e13;
 }
 
 #musicUploadMessage {
@@ -1971,12 +1971,12 @@ body {
 }
 
 .music-card:hover {
-    background: #292235;
+    background: #201b27;
     border-color: #8957e5;
 }
 
 .music-card-icon {
-    background: #36254e;
+    background: #16121c;
     color: #c9aaff;
 }
 
@@ -1989,7 +1989,7 @@ body {
 }
 
 .music-card-details small {
-    color: #9e94ae;
+    color: #1e1a25;
 }
 
 .music-player {
@@ -1999,7 +1999,7 @@ body {
 
 .music-player audio {
     border-radius: 10px;
-    accent-color: #8957e5;
+    accent-color: #15121a;
 }
 
 #musicUploadForm button:focus-visible,
