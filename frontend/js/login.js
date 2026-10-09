@@ -13,7 +13,7 @@ loginForm.addEventListener("submit", async function (event) {
 
     loginMessage.textContent = "";
     loginButton.disabled = true;
-    loginButton.textContent = "Logging in...";
+    loginButton.textContent = "Logging in might take up to 20s";
 
     try {
         const response = await fetch(`${API_URL}/api/auth/login`, {
