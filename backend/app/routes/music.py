@@ -1,13 +1,13 @@
-
 from io import BytesIO
 from datetime import datetime
 
 from flask import Blueprint, request, jsonify, send_file, url_for
-from flask_jwt_extended import jwt_required, get_jwt_identity
+from flask_jwt_extended import get_jwt_identity
 from werkzeug.utils import secure_filename
 
 from app.extensions import db
 from app.models import User, Music
+from app.utils.permissions import permission_required
 
 
 music_bp = Blueprint(
@@ -69,13 +69,8 @@ def music_to_dict(music):
 
 
 @music_bp.route("", methods=["GET"])
-@jwt_required()
+@permission_required("music.view")
 def get_music():
-    user = get_logged_in_user()
-
-    if not user:
-        return jsonify({"error": "Active account not found"}), 403
-
     songs = Music.query.order_by(
         Music.created_at.desc(),
         Music.id.desc()
@@ -87,7 +82,7 @@ def get_music():
 
 
 @music_bp.route("/upload", methods=["POST"])
-@jwt_required()
+@permission_required("music.manage")
 def upload_music():
     user = get_logged_in_user()
 
@@ -133,7 +128,6 @@ def upload_music():
             "error": "Audio files must be 25 MB or smaller"
         }), 400
 
-
     song = Music(
         title=title,
         artist=artist or None,
@@ -143,8 +137,6 @@ def upload_music():
         uploaded_by=user.id,
         created_at=datetime.utcnow()
     )
-
-
 
     try:
         db.session.add(song)
@@ -162,13 +154,8 @@ def upload_music():
 
 
 @music_bp.route("/<int:music_id>/play", methods=["GET"])
-@jwt_required()
+@permission_required("music.play")
 def play_music(music_id):
-    user = get_logged_in_user()
-
-    if not user:
-        return jsonify({"error": "Active account not found"}), 403
-
     song = db.session.get(Music, music_id)
 
     if not song:
@@ -194,18 +181,8 @@ def play_music(music_id):
 
 
 @music_bp.route("/<int:music_id>", methods=["DELETE"])
-@jwt_required()
+@permission_required("music.manage")
 def delete_music(music_id):
-    user = get_logged_in_user()
-
-    if not user:
-        return jsonify({"error": "Active account not found"}), 403
-
-    if user.account_type not in ["SHEPHERD", "ASSISTANT"]:
-        return jsonify({
-            "error": "Only Shepherds and Assistants can delete music"
-        }), 403
-
     song = db.session.get(Music, music_id)
 
     if not song:
@@ -223,4 +200,3 @@ def delete_music(music_id):
     return jsonify({
         "message": "Music deleted successfully"
     }), 200
-

@@ -7,6 +7,7 @@ if (!token) {
     window.location.href = "login.html";
 }
 
+
 const pagePermissions = {
     overview: null,
     dancers: "dancers.view",
@@ -15,12 +16,14 @@ const pagePermissions = {
     rehearsals: "rehearsals.view",
     uniform: "uniform.view",
     dance: "dance.view",
-    music: null,
+    music: "music.view",
     reports: "reports.view",
     birthdays: null,
     activity: null,
     settings: null
 };
+
+
 
 
 
