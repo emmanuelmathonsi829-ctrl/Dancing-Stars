@@ -2246,7 +2246,7 @@ async function openAttendance(rehearsalId) {
                                                     ? `Marked by ${escapeHtml(
                                                         dancer.marked_by
                                                     )}`
-                                                    : "Not marked yet"
+                                                    : ""
                                             }
                                         </span>
 
