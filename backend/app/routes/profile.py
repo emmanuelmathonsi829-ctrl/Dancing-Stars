@@ -23,8 +23,6 @@ def get_current_user():
     if not user:
         return None
 
-    if user.status != "ACTIVE":
-        return None
 
     return user
 
