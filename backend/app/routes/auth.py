@@ -33,11 +33,14 @@ def login():
         return jsonify({
             "error": "Invalid username or password"
         }), 401
+    
 
     if user.status != "ACTIVE":
         return jsonify({
             "error": "Account is disabled"
         }), 403
+
+        
 
     if not check_password(password, user.password_hash):
         return jsonify({
@@ -206,4 +209,53 @@ def delete_account():
 
     return jsonify({
         "message": "Account deleted successfully"
+    }), 200
+
+@auth_bp.route("/disabled-accounts", methods=["GET"])
+@jwt_required()
+def get_disabled_accounts():
+    user_id = get_jwt_identity()
+    current_user = db.session.get(User, int(user_id))
+
+    if not current_user or current_user.account_type != "SHEPHERD":
+        return jsonify({"error": "Shepherd access required"}), 403
+
+    users = User.query.filter_by(status="DISABLED").order_by(
+        User.username.asc()
+    ).all()
+
+    return jsonify({
+        "accounts": [
+            {
+                "id": user.id,
+                "username": user.username,
+                "account_type": user.account_type
+            }
+            for user in users
+        ]
+    }), 200
+
+
+@auth_bp.route("/enable-account/<int:user_id>", methods=["POST"])
+@jwt_required()
+def enable_account(user_id):
+    current_user_id = get_jwt_identity()
+    current_user = db.session.get(User, int(current_user_id))
+
+    if not current_user or current_user.account_type != "SHEPHERD":
+        return jsonify({"error": "Shepherd access required"}), 403
+
+    user = db.session.get(User, user_id)
+
+    if not user:
+        return jsonify({"error": "Account not found"}), 404
+
+    if user.status == "ACTIVE":
+        return jsonify({"message": "Account is already active"}), 200
+
+    user.status = "ACTIVE"
+    db.session.commit()
+
+    return jsonify({
+        "message": f"{user.username}'s account has been enabled."
     }), 200

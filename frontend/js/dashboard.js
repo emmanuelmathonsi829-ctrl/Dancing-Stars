@@ -3217,164 +3217,192 @@ async function deleteRehearsal(
     }
 }
 
+
 function showSettings() {
     pageContentElement.innerHTML = `
         <div class="welcome-section">
-
-            <p class="section-label">
-                ACCOUNT
-            </p>
-
-            <h2>
-                Settings
-            </h2>
-
-            <p>
-                Manage your account and security.
-            </p>
-
+            <p class="section-label">ACCOUNT</p>
+            <h2>Settings</h2>
+            <p>Manage your account and security.</p>
         </div>
 
         <div class="dashboard-card settings-card">
-
             <div class="card-header">
-
                 <div>
-
-                    <p class="section-label">
-                        SECURITY
-                    </p>
-
-                    <h3>
-                        Change Password
-                    </h3>
-
+                    <p class="section-label">SECURITY</p>
+                    <h3>Change Password</h3>
                 </div>
-
             </div>
 
             <form id="changePasswordForm">
-
                 <div class="form-group">
-
-                    <label for="currentPassword">
-                        Current Password
-                    </label>
-
-                    <input
-                        type="password"
-                        id="currentPassword"
-                        required
-                        autocomplete="current-password"
-                    >
-
+                    <label for="currentPassword">Current Password</label>
+                    <input type="password" id="currentPassword"
+                        required autocomplete="current-password">
                 </div>
 
                 <div class="form-group">
-
-                    <label for="newPassword">
-                        New Password
-                    </label>
-
-                    <input
-                        type="password"
-                        id="newPassword"
-                        required
-                        minlength="8"
-                        autocomplete="new-password"
-                    >
-
+                    <label for="newPassword">New Password</label>
+                    <input type="password" id="newPassword"
+                        required minlength="8" autocomplete="new-password">
                 </div>
 
                 <div class="form-group">
-
-                    <label for="confirmPassword">
-                        Confirm New Password
-                    </label>
-
-                    <input
-                        type="password"
-                        id="confirmPassword"
-                        required
-                        minlength="8"
-                        autocomplete="new-password"
-                    >
-
+                    <label for="confirmPassword">Confirm New Password</label>
+                    <input type="password" id="confirmPassword"
+                        required minlength="8" autocomplete="new-password">
                 </div>
 
-                <button
-                    type="submit"
-                    class="dashboard-action"
-                >
+                <button type="submit" class="dashboard-action">
                     Change Password
                 </button>
-
-                <p
-                    id="passwordMessage"
-                    class="form-message"
-                ></p>
-
+                <p id="passwordMessage" class="form-message"></p>
             </form>
+        </div>
 
+        <div id="disabledAccountsSection" class="dashboard-card"
+             style="display:none;">
+            <div class="card-header">
+                <div>
+                    <p class="section-label">ACCOUNT MANAGEMENT</p>
+                    <h3>Disabled Accounts</h3>
+                </div>
+            </div>
+            <p>View and reactivate disabled accounts.</p>
+            <div id="disabledAccountsList">Loading accounts...</div>
+            <p id="disabledAccountsMessage" class="form-message"></p>
         </div>
 
         <div class="dashboard-card settings-danger-card">
-
             <div class="card-header">
-
                 <div>
-
-                    <p class="section-label">
-                        DANGER ZONE
-                    </p>
-
-                    <h3>
-                        Delete Account
-                    </h3>
-
+                    <p class="section-label">DANGER ZONE</p>
+                    <h3>Delete Account</h3>
                 </div>
-
             </div>
 
-            <p>
-                Your account will be disabled and you will be logged out.
-                Your historical records will be preserved.
-            </p>
+            <p>Your account will be disabled and you will be logged out.
+               Your historical records will be preserved.</p>
 
-            <button
-                type="button"
-                id="deleteAccountButton"
-                class="dashboard-danger"
-            >
+            <button type="button" id="deleteAccountButton"
+                    class="dashboard-danger">
                 Delete My Account
             </button>
-
-            <p
-                id="deleteMessage"
-                class="form-message"
-            ></p>
-
+            <p id="deleteMessage" class="form-message"></p>
         </div>
     `;
 
-    document
-        .getElementById(
-            "changePasswordForm"
-        )
-        .addEventListener(
-            "submit",
-            changePassword
+    document.getElementById("changePasswordForm")
+        .addEventListener("submit", changePassword);
+
+    document.getElementById("deleteAccountButton")
+        .addEventListener("click", deleteAccount);
+
+    // Read the logged-in user's account type from the page.
+    const currentAccountType =
+        document.getElementById("accountType").textContent.trim();
+
+    if (currentAccountType === "SHEPHERD") {
+        document.getElementById("disabledAccountsSection").style.display = "";
+        loadDisabledAccounts();
+    }
+}
+
+async function loadDisabledAccounts() {
+    const list = document.getElementById("disabledAccountsList");
+    const message = document.getElementById("disabledAccountsMessage");
+
+    list.textContent = "Loading accounts...";
+    message.textContent = "";
+
+    try {
+        const response = await fetch(
+            `${API_URL}/api/auth/disabled-accounts`,
+            {
+                headers: {
+                    "Authorization": `Bearer ${token}`
+                }
+            }
         );
 
-    document
-        .getElementById(
-            "deleteAccountButton"
-        )
-        .addEventListener(
-            "click",
-            deleteAccount
-        );
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.error || "Unable to load disabled accounts.");
+        }
+
+        list.replaceChildren();
+
+        if (!data.accounts || data.accounts.length === 0) {
+            list.textContent = "There are no disabled accounts.";
+            return;
+        }
+
+        data.accounts.forEach(user => {
+            const row = document.createElement("div");
+            row.style.cssText =
+                "display:flex;justify-content:space-between;align-items:center;" +
+                "gap:12px;padding:14px 0;border-bottom:1px solid #ddd;";
+
+            const details = document.createElement("div");
+            const username = document.createElement("strong");
+            username.textContent = user.username;
+
+            const role = document.createElement("p");
+            role.textContent = user.account_type;
+            role.style.margin = "4px 0 0";
+
+            details.append(username, role);
+
+            const button = document.createElement("button");
+            button.type = "button";
+            button.className = "dashboard-action";
+            button.textContent = "Enable Account";
+
+            button.addEventListener("click", async () => {
+                if (!confirm(`Enable ${user.username}'s account?`)) return;
+
+                button.disabled = true;
+                button.textContent = "Enabling...";
+
+                try {
+                    const enableResponse = await fetch(
+                        `${API_URL}/api/auth/enable-account/${user.id}`,
+                        {
+                            method: "POST",
+                            headers: {
+                                "Authorization": `Bearer ${token}`
+                            }
+                        }
+                    );
+
+                    const result = await enableResponse.json();
+
+                    if (!enableResponse.ok) {
+                        throw new Error(result.error || "Unable to enable account.");
+                    }
+
+                    message.textContent =
+                        result.message || "Account enabled successfully.";
+
+                    await loadDisabledAccounts();
+                } catch (error) {
+                    message.textContent = error.message;
+                    button.disabled = false;
+                    button.textContent = "Enable Account";
+                }
+            });
+
+            row.append(details, button);
+            list.appendChild(row);
+        });
+    } catch (error) {
+        list.textContent = "Unable to load disabled accounts.";
+        message.textContent = error.message;
+    }
 }
+
+
 
 async function changePassword(
     event
